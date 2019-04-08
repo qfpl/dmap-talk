@@ -1,4 +1,29 @@
 
+
+map patientid patientdata
+map investigatorid investigatordata
+
+patientdata = 
+  details
+  day1
+  day2
+  day3
+  
+details =
+  initials
+  dob
+  
+day =
+  investigator
+  date
+  weight
+  some optional bool
+  
+this works for demoing the functor functor pattern, what about dmap?
+maybe pre-existing conditions, where the conditions have parameters
+- what stage cancer? what type of diabetes? how long have you had X?
+
+
 - want a valiation example with both dmap and with vessel
 - want a ggplot2 style config example
 - want a prim-uniq example, possibly just reading in a bunch of stuff and being able to query it / delete from it
