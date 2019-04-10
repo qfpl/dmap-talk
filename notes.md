@@ -23,6 +23,21 @@ this works for demoing the functor functor pattern, what about dmap?
 maybe pre-existing conditions, where the conditions have parameters
 - what stage cancer? what type of diabetes? how long have you had X?
 
+a programmer specific on might be handy
+- maybe interests / experience for YOW
+- management stuff and programmer stuff might be different
+  - years of experience might be common (classy prisms...)
+  - programming might have a selection of languages (years per language?)
+
+- management
+  - team lead / product manager / project manager
+  - methodologies
+- programming
+  - languages
+  - technologies
+  
+something near enough will probably do to get started with
+
 
 - want a valiation example with both dmap and with vessel
 - want a ggplot2 style config example
