@@ -21,13 +21,15 @@ day =
   
 this works for demoing the functor functor pattern, what about dmap?
 maybe pre-existing conditions, where the conditions have parameters
-- what stage cancer? what type of diabetes? how long have you had X?
+- what stage/type/date-of-diagnosis cancer? what type of diabetes? 
 
 a programmer specific on might be handy
 - maybe interests / experience for YOW
 - management stuff and programmer stuff might be different
   - years of experience might be common (classy prisms...)
   - programming might have a selection of languages (years per language?)
+  - some aspect of programming that is closer to pre-existing conditions might be better
+    - versions of C++ ?
 
 - management
   - team lead / product manager / project manager
@@ -69,3 +71,33 @@ Cool things:
   Vessel and possibly Rhyolite?
 
 Vessel for RealWorld would be useful to work stuff out
+
+
+=====
+
+   programmer and language 
+vs team lead
+vs manager and methodology 
+
+could be handy for a DSum example
+
+language as a parameter to a generic key vs a key per language
+
+big dmap versus some data type with maps all through which could be empty, along with semigroup / monoid instances etc...
+converting to a dmap lets us access all of our functor functor based data uniformly
+vessel lets us encode things about multiplicities, so that we don't need to use f for that
+
+- x maybe -> maybe (x identity)
+- x maybe -> validation (x (const e)) (x identity)
+- what should we do with x proxy?
+- can also add some stuff like x widget, where widget ~ (Dynamic t x -> Event t (Endo x))
+
+
+
+
+
+
+
+
+
+

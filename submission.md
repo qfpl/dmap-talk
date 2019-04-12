@@ -72,7 +72,7 @@ Outline:
 - How to apply constraints to all of the values in a DMap (2 mins)
   - This is done via the constraints-extras library
   - look at the Has/Has' constraint and the has/has' function for consuming it
-  - a brief mention of the aeson-gadt-th library for JSON interoperation
+  - a brief mention of the aeson-gadt-th and dependent-sum-aeson-orphans libraries for JSON interoperation
 
 - Vessel (5 mins)
   - This is a library that wraps up the Functor Functor idea for Identity / Option First / Map / DMap and makes it possible to nest them
