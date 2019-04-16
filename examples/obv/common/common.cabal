@@ -1,0 +1,28 @@
+name: common
+version: 0.1
+cabal-version: >= 1.2
+build-type: Simple
+
+library
+  hs-source-dirs: src
+  build-depends: base
+               , obelisk-route
+               , mtl
+               , text
+               , dependent-sum
+               , dependent-sum-template
+               , dependent-map
+               , constraints
+               , constraints-extras
+               , lens
+               , aeson
+               , aeson-gadt-th
+               , validation
+  default-extensions:
+    TypeFamilies
+    PolyKinds
+  ghc-options: -Wall
+  exposed-modules:
+      Common.Api
+    , Common.Route
+    , Common.Stuff
