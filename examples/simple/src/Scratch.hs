@@ -17,8 +17,6 @@ import Data.Functor.Identity
 import Data.Functor.Classes
 
 import Data.Dependent.Sum (DSum(..), EqTag(..), OrdTag(..), ShowTag(..))
--- import qualified Data.Dependent.Sum as DSum
-
 import Data.Dependent.Map (DMap)
 import qualified Data.Dependent.Map as DMap
 import Data.Some (Some)
