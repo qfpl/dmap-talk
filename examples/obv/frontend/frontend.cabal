@@ -17,6 +17,7 @@ library
   exposed-modules:
       Frontend
     , Frontend.Stuff
+    , Frontend.Stuff.Widget
   ghc-options: -Wall
 
 executable frontend

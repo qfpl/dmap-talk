@@ -7,6 +7,8 @@ import Data.Functor.Identity
 import Reflex.Dom.Core
 
 import Common.Stuff
+import Common.Stuff.Validate
+import Frontend.Stuff.Widget
 
 -- map of people, ability to query by language using f ~ Proxy?
 

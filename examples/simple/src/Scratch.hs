@@ -9,12 +9,14 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE UndecidableInstances #-} -- for deriveArgDict ''AttendeeKey
+{-# LANGUAGE RankNTypes #-}
 module Scratch where
 
 import GHC.Generics (Generic)
 
 import Data.Functor.Identity
 import Data.Functor.Classes
+import Data.Bifunctor
 
 import Data.Dependent.Sum (DSum(..), EqTag(..), OrdTag(..), ShowTag(..))
 import Data.Dependent.Map (DMap)
@@ -32,12 +34,17 @@ import Data.GADT.Compare.TH
 import Data.GADT.Show
 import Data.GADT.Show.TH
 
-import Data.Aeson
+import Data.Aeson hiding (Success)
 import Data.Aeson.TH
 import Data.Aeson.GADT.TH
 -- import Data.Dependent.Sum.Orphans
 
 import Control.Lens hiding (has)
+
+import Data.Validation
+
+newtype Wrap a f = Wrap { unWrap :: f a }
+  deriving (Eq, Ord, Show)
 
 instance (ToJSON1 f, ForallF ToJSON k, Has ToJSON k) => ToJSON (DSum k f) where
   toJSON ((k :: k a) :=> (f :: f a))
@@ -100,7 +107,7 @@ deriveJSON defaultOptions ''Years
 
 data ProgrammerKey a where
   PKLanguage :: Language -> ProgrammerKey Years
-  PKTechnology :: Technology -> ProgrammerKey ()
+  PKTechnology :: Technology -> ProgrammerKey Bool
 
 deriveGEq ''ProgrammerKey
 deriveGCompare ''ProgrammerKey
@@ -143,7 +150,7 @@ instance FromJSON1 f => FromJSON (Programmer f)
 -- ManagementRole might have ManagementType and Years, which would be interesting for a Years prism
 data ManagerKey a where
   MKRole :: ManagementRole -> ManagerKey Years
-  MKMethodology :: Methodology -> ManagerKey ()
+  MKMethodology :: Methodology -> ManagerKey Bool
 
 deriveGEq ''ManagerKey
 deriveGCompare ''ManagerKey
@@ -232,6 +239,9 @@ instance Show1 f => ShowTag AttendeeKey f where
 newtype Attendee f = Attendee { unAttendee :: DMap AttendeeKey f }
   deriving (Eq, Ord, Show, Generic)
 
+instance (Has' Semigroup AttendeeKey f) => Semigroup (Attendee f) where
+  Attendee dm1 <> Attendee dm2 = Attendee (DMap.unionWithKey (\k -> has' @Semigroup @f k $ (<>)) dm1 dm2)
+
 instance ToJSON1 f => ToJSON (Attendee f)
 instance FromJSON1 f => FromJSON (Attendee f)
 
@@ -240,7 +250,7 @@ testAttendeeMaybe =
   Attendee .
   DMap.fromList $
     [ AKProgrammer (PKLanguage Haskell) :=> Just (Years 5)
-    , AKManager (MKMethodology Agile) :=> Just ()
+    , AKManager (MKMethodology Agile) :=> Just True
     ]
 
 allRequired :: Attendee Maybe -> Maybe (Attendee Identity)
@@ -256,3 +266,45 @@ anyRequired (Attendee dm) =
 
 -- instance HasYears ProgrammerKey where
 --   _Years = prism _ _
+
+newtype Validator e a = Validator { getValidator :: a Maybe -> Validation (a (Const [e])) (a Identity) }
+
+validateDMap :: GCompare k
+             => (forall a. k a -> Wrap a Maybe -> Validation (Wrap a (Const [e])) (Wrap a Identity))
+             -> Validator e (DMap k)
+validateDMap fn =
+  Validator $ DMap.traverseWithKey (\k -> bimap (DMap.singleton k . unWrap) unWrap . fn k . Wrap)
+
+wrapValidator :: (Maybe a -> Validation (Const [e] a) (Identity a))
+              -> Validator e (Wrap a)
+wrapValidator fn =
+  Validator $ bimap Wrap Wrap . fn . unWrap
+
+data Error = MissingValue | StrictlyPositiveRequired
+  deriving (Eq, Ord, Show)
+
+validateYears :: Validator Error (Wrap Years)
+validateYears = wrapValidator $ \m -> case m of
+    Just (Years y)
+      | y <= 0 -> Failure (Const [StrictlyPositiveRequired])
+      | otherwise -> Success (Identity (Years y))
+    Nothing -> Failure (Const [MissingValue])
+
+validateBool :: Validator Error (Wrap Bool)
+validateBool = wrapValidator $ \m -> case m of
+  Just b -> Success (Identity b)
+  Nothing -> Success (Identity False)
+
+validateAttendee :: Validator Error Attendee
+validateAttendee = Validator $
+  let
+    f :: AttendeeKey a -> Wrap a Maybe -> Validation (Wrap a (Const [Error])) (Wrap a Identity)
+    f k = case k of
+      AKProgrammer kp -> case kp of
+        PKLanguage _ -> getValidator validateYears
+        PKTechnology _ -> getValidator validateBool
+      AKManager km -> case km of
+        MKRole _ -> getValidator validateYears
+        MKMethodology _ -> getValidator validateBool
+  in
+    bimap Attendee Attendee . getValidator (validateDMap f) . unAttendee

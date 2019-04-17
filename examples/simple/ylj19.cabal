@@ -29,6 +29,7 @@ library
                      , aeson
                      , aeson-gadt-th
                      , dependent-sum-aeson-orphans
+                     , validation
   hs-source-dirs:      src
   ghc-options:         -Wall
   default-language:    Haskell2010

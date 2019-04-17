@@ -9,10 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Common.Stuff where
 
-import GHC.Generics (Generic)
-
 import Data.Functor.Identity
-import Data.Functor.Const
 import Data.Functor.Classes
 import Data.Bifunctor
 
@@ -32,51 +29,20 @@ import Data.GADT.Compare.TH
 import Data.GADT.Show
 import Data.GADT.Show.TH
 
-import Data.Aeson hiding (Success)
-import Data.Aeson.TH
-import Data.Aeson.GADT.TH
-
-import Data.Validation
-
-instance (ToJSON1 f, ForallF ToJSON k, Has ToJSON k) => ToJSON (DSum k f) where
-  toJSON ((k :: k a) :=> (f :: f a))
-    = whichever @ToJSON @k @a $
-        has @ToJSON k $
-          let x = toJSON k
-              y = toJSON1 f
-          in
-            toJSON (x, y)
-
-instance (ToJSON1 f, ForallF ToJSON k, Has ToJSON k) => ToJSON (DMap k f) where
-  toJSON = toJSON . DMap.toList
-
-instance (FromJSON1 f, FromJSON (Some k), Has FromJSON k) => FromJSON (DSum k f) where
-  parseJSON x = do
-    (jk, jf) <- parseJSON x
-    Some.This (k :: k a) <- parseJSON jk
-    f <- has @FromJSON k $ parseJSON1 jf
-    return $ k :=> f
-
-instance (FromJSON1 f, FromJSON (Some k), GCompare k, Has FromJSON k) => FromJSON (DMap k f) where
-  parseJSON = fmap DMap.fromList . parseJSON
+newtype Wrap a f = Wrap { unWrap :: f a }
+  deriving (Eq, Ord, Show)
 
 data Language =
-  Haskell | Scala | Clojure | Erlang | Elixir
+  Haskell | Scala | Clojure
   deriving (Eq, Ord, Show, Bounded, Enum)
-
-deriveJSON defaultOptions ''Language
 
 data Technology =
   Web | DB | REST | Mobile
   deriving (Eq, Ord, Show, Bounded, Enum)
 
-deriveJSON defaultOptions ''Technology
-
 data ManagementRole =
   TeamLead | ProductManager | ProjectManager
   deriving (Eq, Ord, Show, Bounded, Enum)
-
-deriveJSON defaultOptions ''ManagementRole
 
 -- this can also be interesting
 -- possibly moreso when we add vessel into the mix
@@ -90,12 +56,8 @@ data Methodology =
   Scrum | Agile | Waterfall
   deriving (Eq, Ord, Show, Bounded, Enum)
 
-deriveJSON defaultOptions ''Methodology
-
 newtype Years = Years { getYears :: Int }
   deriving (Eq, Ord, Show)
-
-deriveJSON defaultOptions ''Years
 
 data ProgrammerKey a where
   PKLanguage :: Language -> ProgrammerKey Years
@@ -105,7 +67,6 @@ deriveGEq ''ProgrammerKey
 deriveGCompare ''ProgrammerKey
 deriveGShow ''ProgrammerKey
 deriveArgDict ''ProgrammerKey
-deriveJSONGADT ''ProgrammerKey
 
 instance Eq1 f => EqTag ProgrammerKey f where
   eqTagged (PKLanguage l1) (PKLanguage l2) f1 f2
@@ -132,10 +93,7 @@ instance Show1 f => ShowTag ProgrammerKey f where
   showTaggedPrec (PKTechnology _) n = showsPrec1 n
 
 newtype Programmer f = Programmer { unProgrammer :: DMap ProgrammerKey f }
-  deriving (Eq, Ord, Show, Generic)
-
-instance ToJSON1 f => ToJSON (Programmer f)
-instance FromJSON1 f => FromJSON (Programmer f)
+  deriving (Eq, Ord, Show )
 
 -- multiple methodologies of interest, Methodology is an argument to the key
 -- if we're talking about the primary role, we might have MKRole :: ManagerKey ManagementRole
@@ -148,7 +106,6 @@ deriveGEq ''ManagerKey
 deriveGCompare ''ManagerKey
 deriveGShow ''ManagerKey
 deriveArgDict ''ManagerKey
-deriveJSONGADT ''ManagerKey
 
 instance Eq1 f => EqTag ManagerKey f where
   eqTagged (MKRole r1) (MKRole r2) f1 f2
@@ -175,10 +132,7 @@ instance Show1 f => ShowTag ManagerKey f where
   showTaggedPrec (MKMethodology _) n = showsPrec1 n
 
 newtype Manager f = Manager { unManager :: DMap ManagerKey f }
-  deriving (Eq, Ord, Show, Generic)
-
-instance ToJSON1 f => ToJSON (Manager f)
-instance FromJSON1 f => FromJSON (Manager f)
+  deriving (Eq, Ord, Show)
 
 data AttendeeKey a where
   -- can avoid the need for constraints here if we use some of the things in constraints-extras
@@ -190,7 +144,6 @@ data AttendeeKey a where
 deriveGEq ''AttendeeKey
 deriveGCompare ''AttendeeKey
 deriveArgDict ''AttendeeKey
-deriveJSONGADT ''AttendeeKey
 
 instance GShow AttendeeKey where
   gshowsPrec n (AKManager k) = gshowsPrec n k
@@ -229,50 +182,8 @@ instance Show1 f => ShowTag AttendeeKey f where
   showTaggedPrec (AKProgrammer k) n f = has @Show  k $ showsPrec1 n f
 
 newtype Attendee f = Attendee { unAttendee :: DMap AttendeeKey f }
-  deriving (Eq, Ord, Show, Generic)
-
-instance ToJSON1 f => ToJSON (Attendee f)
-instance FromJSON1 f => FromJSON (Attendee f)
-
-newtype Validator e a = Validator { getValidator :: a Maybe -> Validation (a (Const e)) (a Identity) }
-newtype Validator2 e a = Validator2 { getValidator2 :: Maybe a -> Validation (Const e a) (Identity a) }
-
-data Error = MissingValue
   deriving (Eq, Ord, Show)
 
--- could we make a DMap of validators and do an intersection?
+instance Semigroup (Attendee f) where
+  Attendee dm1 <> Attendee dm2 = Attendee (dm1 <> dm2)
 
-validateYears :: Validator2 Error Years
-validateYears = Validator2 $ \m -> case m of
-  Just y  -> Success (Identity y)
-  Nothing -> Failure (Const MissingValue)
-
-validateBool :: Validator2 Error Bool
-validateBool = Validator2 $ \m -> case m of
-  Just b -> Success (Identity b)
-  Nothing -> Success (Identity False)
-
-validateProgrammer :: DMap ProgrammerKey (Validator2 Error)
-validateProgrammer =
-  DMap.fromList $ ((\l -> PKLanguage l :=> validateYears) <$> [minBound..maxBound]) <>
-                  ((\t -> PKTechnology t :=> validateBool) <$> [minBound..maxBound])
-
-validateManager :: DMap ManagerKey (Validator2 Error)
-validateManager =
-  DMap.fromList $ ((\r -> MKRole r :=> validateYears) <$> [minBound..maxBound]) <>
-                  ((\m -> MKMethodology m :=> validateBool) <$> [minBound..maxBound])
-
-validateAttendee :: Attendee (Validator2 Error)
-validateAttendee =
-  Attendee $
-    DMap.union
-      (DMap.mapKeysWith (\k v _ -> v) AKProgrammer validateProgrammer)
-      (DMap.mapKeysWith (\k v _ -> v) AKManager validateManager)
-
--- it would be nice to get a Attendee (Const Error) out of this, so that we could
--- put the errors in the right place with ease
-
--- validation
--- - validation attendee
---   - run through keys, dispatch on manager vs programmer
---     - run through keys, dispatch on key
