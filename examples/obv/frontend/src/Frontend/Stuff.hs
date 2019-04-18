@@ -1,5 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecursiveDo #-}
 module Frontend.Stuff where
+
+import Control.Monad.Fix (MonadFix)
+
+import Data.Monoid (Endo(..))
 
 import Data.Functor.Compose
 import Data.Functor.Identity
@@ -17,6 +22,15 @@ import Frontend.Stuff.Widget
 
 -- Dynamic t (Attendee (Const e)) -> Dynamic t (Attendee Maybe) -> Event t (Validation e (Attendee Endo))
 
-stuff :: (DomBuilder t m, Monad m) => m ()
+stuff :: (DomBuilder t m, PostBuild t m, MonadHold t m, MonadFix m) => m ()
 stuff =
-  el "div" $ text "Hi"
+  el "div" $ mdo
+    text "Hi"
+    e <- el "div" $
+      getWidget (addValidation validateAttendee e widgetAttendee) initialAttendee never (pure mempty)
+    d <- foldDyn appEndo initialAttendee e
+    eValidate <- el "div" $
+      button "Validate"
+    el "div" $
+      display d
+    pure ()

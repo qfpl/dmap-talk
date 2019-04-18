@@ -57,7 +57,7 @@ data Methodology =
   deriving (Eq, Ord, Show, Bounded, Enum)
 
 newtype Years = Years { getYears :: Int }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Ord, Show, Read)
 
 data ProgrammerKey a where
   PKLanguage :: Language -> ProgrammerKey Years
@@ -186,4 +186,26 @@ newtype Attendee f = Attendee { unAttendee :: DMap AttendeeKey f }
 
 instance Semigroup (Attendee f) where
   Attendee dm1 <> Attendee dm2 = Attendee (dm1 <> dm2)
+
+instance Monoid (Attendee f) where
+  mempty = Attendee mempty
+  mappend = (<>)
+
+initialAttendee :: Attendee Maybe
+initialAttendee = Attendee $
+    DMap.fromList [
+      AKProgrammer (PKLanguage Haskell) :=> Nothing
+    , AKProgrammer (PKLanguage Scala) :=> Nothing
+    , AKProgrammer (PKLanguage Clojure) :=> Nothing
+    , AKProgrammer (PKTechnology Web) :=> Nothing
+    , AKProgrammer (PKTechnology DB) :=> Nothing
+    , AKProgrammer (PKTechnology REST) :=> Nothing
+    , AKProgrammer (PKTechnology Mobile) :=> Nothing
+    , AKManager (MKRole TeamLead) :=> Nothing
+    , AKManager (MKRole ProductManager) :=> Nothing
+    , AKManager (MKRole ProjectManager) :=> Nothing
+    , AKManager (MKMethodology Scrum) :=> Nothing
+    , AKManager (MKMethodology Agile) :=> Nothing
+    , AKManager (MKMethodology Waterfall) :=> Nothing
+    ]
 
