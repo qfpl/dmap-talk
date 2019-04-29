@@ -46,6 +46,9 @@ import Common.Stuff.Validate
 
 -- newtype V f = V (Vessel K f)
 
+-- need to be able to fire off error events as well
+-- - like someone putting text into the years field
+-- - possibly Endo (a (Either e)) in the return type?
 newtype W e t m a =
   W {
     getWidget :: a Maybe
@@ -72,10 +75,9 @@ addValidation :: (Monad m, Reflex t, MonadHold t m, Monoid (a (Const [e])), Mona
 addValidation v eValidate (W fn) = W $ \iv ev ee -> mdo
   e <- fn iv ev $ ee <> ee'
 
-  -- this is delayed by a frame, which seems bad
-  -- a foldDyn followed by a holdDyn will do that
   d <- foldDyn appEndo iv $ leftmost [e, (\x -> Endo (const x)) <$> ev]
-  let (ee', _) = fanEither $ toEither . getValidator v <$> current d <@ eValidate
+  let eCheck = leftmost [coincidence (updated d <$ eValidate), current d <@ eValidate]
+  let (ee', _) = fanEither $ toEither . getValidator v <$> eCheck
 
   pure e
 

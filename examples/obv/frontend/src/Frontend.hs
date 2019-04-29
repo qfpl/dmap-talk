@@ -21,5 +21,4 @@ frontend = Frontend
       text "Welcome to Obelisk!"
       el "p" $ text $ T.pack commonStuff
       stuff
-      -- elAttr "img" ("src" =: static @"obelisk.jpg") blank
   }

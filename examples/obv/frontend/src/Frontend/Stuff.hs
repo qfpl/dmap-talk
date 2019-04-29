@@ -27,6 +27,7 @@ stuff =
   el "div" $ mdo
     text "Hi"
     e <- el "div" $
+      -- getWidget (addValidation validateAttendee eValidate widgetAttendee) initialAttendee never never
       getWidget (addValidation validateAttendee e widgetAttendee) initialAttendee never never
     d <- foldDyn appEndo initialAttendee e
     eValidate <- el "div" $
