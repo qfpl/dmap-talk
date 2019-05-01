@@ -1,0 +1,22 @@
+diff --git a/reflex.cabal b/reflex.cabal
+index 2f3ab76..816b219 100644
+--- a/reflex.cabal
++++ b/reflex.cabal
+@@ -133,7 +133,7 @@ library
+   if flag(use-template-haskell)
+     cpp-options: -DUSE_TEMPLATE_HASKELL
+     build-depends:
+-      dependent-sum >= 0.3 && < 0.5,
++      dependent-sum >= 0.3 && < 0.6,
+       haskell-src-exts >= 1.16 && < 1.21,
+       haskell-src-meta >= 0.6 && < 0.9,
+       template-haskell >= 2.9 && < 2.15
+@@ -142,7 +142,7 @@ library
+     other-extensions: TemplateHaskell
+   else
+     build-depends:
+-      dependent-sum == 0.4.*
++      dependent-sum >= 0.3 && < 0.6
+ 
+   if flag(fast-weak) && impl(ghcjs)
+     cpp-options: -DGHCJS_FAST_WEAK

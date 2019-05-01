@@ -1,0 +1,42 @@
+name:                code
+version:             0.1.0.0
+-- synopsis:
+-- description:
+license:             BSD3
+license-file:        LICENSE
+author:              Dave Laing
+maintainer:          dave.laing.80@gmail.com
+-- copyright:
+-- category:
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Disease.Common
+                     , Disease.Version1
+                     , Disease.Version2
+                     , Details.Common
+                     , Details.Version1
+                     , Details.Version2
+                     , Details.Version3
+                     , Details.Version4
+                     , GADT.Regular
+                     , GADT.Regular.GADT
+                     , GADT.Phantom
+                     , GADT.Phantom.GADT
+                     , GADT.Existential
+                     , GADT.Existential.GADT
+  build-depends:       base >=4.11 && <4.12
+                     , containers
+                     , text
+                     , time
+                     , dependent-sum
+                     , dependent-sum-template
+                     , dependent-map
+                     , dependent-monoidal-map
+                     , constraints
+                     , constraints-extras
+                     , vessel
+  hs-source-dirs:      src
+  default-language:    Haskell2010
