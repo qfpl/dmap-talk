@@ -43,18 +43,7 @@ deriving instance Show (DetailsKey a)
 newtype Details f =
   Details {
     getDetails :: Vessel DetailsKey f
-  -- } deriving (Eq, Ord, Show, Semigroup, Monoid)
   }
-
-newDetails :: Details Maybe
-newDetails =
-  Details .
-  fromListV $ [
-    DKId :~> IdentityV Nothing
-  , DKInitials :~> IdentityV Nothing
-  , DKDOB :~> IdentityV Nothing
-  , DKWeight :~> SingleV Nothing
-  ]
 
 deriving instance (Has' Eq DetailsKey (FlipAp f)) => Eq (Details f)
 
@@ -74,3 +63,13 @@ instance (Has' Semigroup DetailsKey (FlipAp f)) => Semigroup (Details f) where
 instance (Has' Monoid DetailsKey (FlipAp f)) => Monoid (Details f) where
   mempty = Details mempty
   mappend = (<>)
+
+newDetails :: Details Maybe
+newDetails =
+  Details .
+  fromListV $ [
+    DKId :~> IdentityV Nothing
+  , DKInitials :~> IdentityV Nothing
+  , DKDOB :~> IdentityV Nothing
+  , DKWeight :~> SingleV Nothing
+  ]
