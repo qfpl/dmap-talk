@@ -28,6 +28,7 @@ library
                      , GADT.Existential
                      , GADT.Existential.GADT
                      , GADT.Win
+                     , Vessel
   build-depends:       base >=4.11 && <4.12
                      , containers
                      , text
@@ -40,6 +41,7 @@ library
                      , constraints-extras
                      , validation
                      , vessel
+                     , reflex
   hs-source-dirs:      src
   ghc-options:         -Wall
   default-language:    Haskell2010

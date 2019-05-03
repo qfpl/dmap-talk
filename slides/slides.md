@@ -9,7 +9,14 @@
 
 ##
 
--- data structure for handling that by having a pile of maps
+```haskell
+data ExistingConditions =
+  ExistingConditions {
+    ecDiabetes :: Maybe DiabetesInfo
+  , ecCancer :: Map CancerType CancerStage
+  , ecEpilepsy :: Any
+  } deriving (Eq, Ord, Show)
+```
 
 ##
 
@@ -21,7 +28,16 @@
 
 ##
 
--- data structure for wrapping that up with DMap
+```haskell
+data ExistingConditionKey a where
+  ECDiabetes :: ExistingConditionKey DiabetesInfo
+  ECCancer :: CancerType -> ExistingConditionKey CancerStage
+  ECEpilepsy :: ExistingConditionKey ()
+```
+
+```haskell
+type ExistingCondition = DMap ExistingConditionKey Identity
+```
 
 ##
 
