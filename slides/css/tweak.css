@@ -9,6 +9,7 @@
 
 .reveal pre code {
   max-height: 600px;
+  width: 100%;
 }
 
 .removed-outer div {

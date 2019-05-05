@@ -36,131 +36,323 @@ data ExistingConditionKey a where
 ```
 
 ```haskell
-type ExistingCondition = DMap ExistingConditionKey Identity
+type ExistingCondition = 
+  DMap ExistingConditionKey Identity
 ```
 
 ##
 
--- code for doing validation with DMap
+```haskell
+type ExistingConditionForm = 
+  DMap ExistingConditionKey Maybe
+```
 
 ##
 
--- why you might want something like Vessel
+```haskell
+type ExistingConditionErrors = 
+  DMap ExistingConditionKey (Const [Error])
+```
 
 ##
 
--- data structure for wrapping that up with Vessel
+```haskell
+newtype Validator x = 
+  Validator { 
+    runValidator :: Maybe x 
+                 -> Validation (Const [Error] x) (Identity x)
+  }
+```
+
+```haskell
+type ExistingConditionValidators = 
+  DMap ExistingConditionKey Validator
+```
 
 ##
 
--- code for doing validation with Vessel
-
+TODO something around widgets?
 
 # GADTs
 
 ## Regular types
 
 ```haskell
-data Foo = 
-    Bar Int 
-  | Baz String
+data PatientInformation =
+    PatientDetails Text Day -- initials and dob
+  | PatientId Int           -- id in the system
+  deriving (Eq, Ord, Show)
 ```
 
 ```haskell
-> :t Bar
-Int -> Foo
+> :t PatientDetails
+Text -> Day -> PatientInformation
 
-> :t Baz
-String -> Foo
+> :t PatientId
+Int -> PatientInformation
+```
+
+## GADT version
+
+```haskell
+{-# LANGUAGE GADTs #-}
+
+data PatientInformation where
+  PatientDetails :: Text -> Day -> PatientInformation
+  PatientId :: Int -> PatientInformation
 ```
 
 ## Phantom types
 
 ```haskell
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE KindSignatures #-}
 
-data Open
-data Closed
-
-data Door a = Door
-
-open :: Door a -> Door Open
-
-knock :: Door Closed -> IO ()
-
-close :: Door a -> Door Closed
+data PatientStatus = 
+    NewPatient 
+  | InSystem
+  deriving (Eq, Ord, Show)
 ```
 
--- TODO
+```haskell
+data PatientInformation (a :: PatientStatus) =
+    PatientDetails Text Day -- initials and dob
+  | PatientId Int           -- id in the system
+  deriving (Eq, Ord, Show)
+```
+
+```haskell
+newPatient :: Text 
+           -> Day 
+           -> PatientInformationNewPatient 
+                   -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = 
+  pure (PatientId 0)
+addPatientToSystem (PatientId i) = 
+  error "awkward..."
+```
+
+## GADT version
+
+```haskell
+data PatientInformation (a :: PatientStatus) where
+  PatientDetails :: Text -> Day -> PatientInformation 'NewPatient
+  PatientId :: Int -> PatientInformation 'InSystem
+```
+
+```haskell
+addPatientToSystem :: PatientInformation 'NewPatient 
+                   -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = 
+  pure (PatientId 0)
+```
 
 ## Existential types
 
--- TODO
-
-## GADTs for regular types
-
 ```haskell
-data Foo where
-  Bar :: Int -> Foo
-  Baz :: String -> Foo
+{-# LANGUAGE ExistentialQuantification #-}
+
+data PatientInformation = forall a. (Read a, Show a) =>
+    PatientDetails Text Day a
+  | PatientId Int
 ```
 
-## GADTs for phantom types
-
 ```haskell
-data Door a where
-  Open :: Door a -> Door Open
-  Close :: Door a -> Door Closed
+instance Show PatientInformation where
+  showsPrec n (PatientId ident) =
+    showString "PatientId " .
+    showsPrec n ident
+  showsPrec n (PatientDetails initials dob other) =
+    showString "PatientDetails " .
+    showsPrec n initials .
+    showString " " .
+    showsPrec n dob .
+    showString " " .
+    showsPrec n other
 ```
 
-## GADTs for existential types
+## GADT version
+
+```haskell
+{-# LANGUAGE GADTs #-}
+
+data PatientInformation where
+  PatientDetails :: (Read a, Show a) 
+                 => Text 
+                 -> Day 
+                 -> a 
+                 -> PatientInformation
+  PatientId      :: Int 
+                 -> PatientInformation
+```
+
+## GADTs for the win
 
 ```haskell
 data AST a where
   IntLit :: Int -> AST Int
   BoolLit :: Bool -> AST Bool
   Lam :: (a -> AST b) -> AST (a -> b)
-  App :: AST (a -> b) -> AST a -> AST b
+  Ap :: AST (a -> b) -> AST a -> AST b
 ```
 
-## GADTs for the win
+## Other GADT fun
 
--- TODO
+```haskell
+data a := b where
+  Refl :: a := a
+```
+
+```haskell
+transitive :: 
+    a := b 
+ -> b := c 
+ -> a := c
+transitive ab bc = 
+  case ab of
+    Refl ->      -- now we know that a~b
+      case bc of
+        Refl ->  -- now we know that b~c
+          Refl   -- captures that fact that a~c
+```
+
 
 # Functor functor
 
 ## 
 
--- example type, name and date of birth from opening example
+```haskell
+data Details =
+  Details {
+    dId :: Id
+  , dInitials :: Text
+  , dDOB :: Day
+  , dWeight :: Maybe Weight
+  } deriving (Eq, Ord, Show)
+```
 
 ## 
 
--- example type with fs
+```haskell
+data Details f =
+  Details {
+    dId :: f Id
+  , dInitials :: f Text
+  , dDOB :: f Day
+  , dWeight :: f (Maybe Weight)
+  }
+```
 
 ## 
 
--- run through what different values of f might correspond to
-  - maybe (or Option Last) for being filled out, in ways that might be combined
-  - identity for filled out
-  - either e / validation e for checking problems
-  - const e for reporting problems
-  - proxy for picking out fields of interest
-    - this is more interesting after a View has been condensed, so we can get a count
-      of how many things have a non-nothing member for the selected field, for instance
-  - maybe mention selected count?
+```haskell
+mapDetails :: 
+     (forall x. g x -> h x) 
+  -> Details g 
+  -> Details h
+mapDetails f (Details ident initials dob weight) =
+  Details (f ident) (f initials) (f dob) (f weight)
+```
+
+```haskell
+editFilled :: 
+     Details Identity 
+  -> Details Maybe
+editFilled = 
+  mapDetails (Just . runIdentity)
+```
 
 ## 
 
--- talk about what map and traverse end up looking like
+```haskell
+traverseDetails :: 
+     Applicative f 
+  => (forall x. g x -> f (h x)) 
+  -> Details g 
+  -> f (Details h)
+traverseDetails f (Details ident initials dob weight) =
+  Details <$> f ident <*> f initials <*> f dob <*> f weight
+```
+
+```haskell
+checkFilled :: Details Maybe 
+            -> Maybe (Details Identity)
+checkFilled = 
+  traverseDetails (fmap Identity)
+```
+
+##
+
+```haskell
+newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
+```
+
+```haskell
+apDetails :: 
+     Applicative f 
+  => Details (Fn f g h) 
+  -> Details g 
+  -> f (Details h)
+apDetails (Details fnIdent fnInitials fnDOB fnWeight) 
+          (Details ident initials dob weight) =
+  Details <$>
+    runFn fnIdent ident <*>
+    runFn fnInitials initials <*>
+    runFn fnDOB dob <*>
+    runFn fnWeight weight
+```
 
 ## 
 
--- examples of map / traverse
-  - probably validation, possibly widgets
+```haskell
+newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
+```
+
+```haskell
+validateInitials :: 
+     Maybe Text
+  -> Validation [DetailsError] (Identity Text)
+validateInitials Nothing = 
+  Failure [NotSet]
+validateInitials (Just t)
+  | Text.length t < 2 = Failure [InitialsTooShort]
+  | otherwise = Success (Identity t)
+```
 
 ## 
 
--- shoutout to the benjamin.pizza post
+```haskell
+newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
+```
+
+```haskell
+detailsFn :: 
+  Details (Fn (Validation [DetailsError]) Maybe Identity)
+detailsFn =
+  Details
+  (Fn validateIdent)
+  (Fn validateInitials)
+  (Fn validateDOB)
+  (Fn validateWeight)
+```
+
+## 
+
+```haskell
+newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
+```
+
+```haskell
+validateDetails :: 
+     Details Maybe 
+  -> Validation [DetailsError] (Details Identity)
+validateDetails =
+  apDetails detailsFn
+```
+
+## 
+
+The post "Functor functors" on benjamin.pizza has a great rundown of what you can do with this.
 
 # DSum
 
@@ -174,15 +366,15 @@ data DSum tag f =
 ##
 
 ```haskell
-data MyTag a where
-  IntTag  :: MyTag Int
-  BoolTag :: MyTag Bool
+data PatientInformationTag a where
+  DetailsTag :: PatientInformationTag (Text, Day)
+  IdTag      :: PatientInformationTag Int
 ```
 
 ##
 
 ```haskell
-> let x = IntTag :=> Identity 1
+> let x = IdTag :=> Identity 1234
 ```
 
 ##
@@ -193,20 +385,25 @@ data MyTag a where
 
 ##
 
-``` haskell
-> let y :: DSum MyTag Identity = BoolTag ==> False
+```haskell
+> let x = IdTag ==> 1234
 ```
 
 ##
 
 ```haskell
-toString :: DSum MyTag Identity -> String
-toString (IntTag  :=> Identity i) = show i ++ " :: Int"
-toString (BoolTag :=> Identity b) = show b ++ " :: Bool"
+addPatientToSystem :: 
+     DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+  error "information not available"
+addPatientToSystem (DetailsTag :=> Just (initials, dob)) =
+  pure (IdTag ==> 0) -- some process here...
+addPatientToSystem (IdTag :=> Nothing)
+  error "information not available"
+addPatientToSystem (IdTag :=> Just i) =
+  pure (IdTag ==> i)
 ```
-
-##
-
 
 ## From `Data.GADT.Compare`
 
@@ -223,9 +420,9 @@ data a := b where
 ##
 
 ```haskell
-instance GEQ MyTag where
-  geq IntTag IntTag = Just Refl
-  geq BoolTag BoolTag = Just Refl
+instance GEq PatientInformationTag where
+  geq DetailsTag DetailsTag = Just Refl
+  geq IdTag IdTag = Just Refl
   geq _ _ = Nothing
 ```
 
@@ -246,16 +443,24 @@ data GOrdering a b where
 ##
 
 ```haskell
-instance GCompare MyTag where
-  gcompare IntTag IntTag = GEQ
-  gcompare IntTag _ = GLT
-  gcompare _ IntTag _ = GGT
-  gcompare BoolTag BoolTag = GEQ
+instance GCompare PatientInformationTag where
+  gcompare DetailsTag DetailsTag = GEQ
+  gcompare DetailsTag _ = GLT
+  gcompare _ DetailsTag = GGT
+  gcompare IdTag IdTag = GEQ
 ```
 
 ##
 
 There is also a `GShow` typeclass.
+
+```haskell
+instance GShow PatientInformationTag where
+  gshowsPrec _ DetailsTag =
+    showString "DetailsTag"
+  gshowsPrec _ IdTag =
+    showString "IdTag"
+```
 
 ##
 
@@ -267,11 +472,10 @@ The `dependent-sum-template` package can create these instances for us.
 import Data.GADT.Compare.TH
 import Data.GADT.Show.TH
 
-deriveGEq ''MyTag
-deriveGCompare ''MyTag
-deriveGShow ''MyTag
+deriveGEq ''PatientInformationTag
+deriveGCompare ''PatientInformationTag
+deriveGShow ''PatientInformationTag
 ```
-
 
 # DMap
 

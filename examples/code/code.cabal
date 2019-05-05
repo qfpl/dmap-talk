@@ -28,6 +28,7 @@ library
                      , GADT.Existential
                      , GADT.Existential.GADT
                      , GADT.Win
+                     , DSum.Example
                      , Vessel
   build-depends:       base >=4.11 && <4.12
                      , containers

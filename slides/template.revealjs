@@ -35,12 +35,6 @@ $for(css)$
   <link rel="stylesheet" href="$css$"/>
 $endfor$
 <link rel="stylesheet" href="css/tweak.css">
-<link rel="stylesheet" href="css/grid-dark.css">
-<link rel="stylesheet" href="css/fizzbuzz.css">
-<link rel="stylesheet" href="css/switch.css">
-<link rel="stylesheet" href="css/todo.css">
-  <script language="javascript" src="js/rx.all.min.js"></script>
-  <script language="javascript" src="js/examples.min.js"></script>
   <!-- Printing and PDF exports -->
   <script>
     var link = document.createElement( 'link' );
