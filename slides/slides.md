@@ -5,7 +5,7 @@
 
 ##
 
--- motivating example for a heterogenous map
+Sometimes we have a problem that is best modeled as a heterogenous map.
 
 ##
 
@@ -39,6 +39,10 @@ data ExistingConditionKey a where
 type ExistingCondition = 
   DMap ExistingConditionKey Identity
 ```
+
+##
+
+-- TODO traverseWithKey example
 
 ##
 
@@ -224,10 +228,10 @@ transitive ab bc =
 ```haskell
 data Details =
   Details {
-    dId :: Id
+    dId       :: Id
   , dInitials :: Text
-  , dDOB :: Day
-  , dWeight :: Maybe Weight
+  , dDOB      :: Day
+  , dWeight   :: Maybe Weight
   } deriving (Eq, Ord, Show)
 ```
 
@@ -236,10 +240,10 @@ data Details =
 ```haskell
 data Details f =
   Details {
-    dId :: f Id
+    dId       :: f Id
   , dInitials :: f Text
-  , dDOB :: f Day
-  , dWeight :: f (Maybe Weight)
+  , dDOB      :: f Day
+  , dWeight   :: f (Maybe Weight)
   }
 ```
 
@@ -268,14 +272,14 @@ editFilled =
 traverseDetails :: 
      Applicative f 
   => (forall x. g x -> f (h x)) 
-  -> Details g 
+  ->    Details g 
   -> f (Details h)
 traverseDetails f (Details ident initials dob weight) =
   Details <$> f ident <*> f initials <*> f dob <*> f weight
 ```
 
 ```haskell
-checkFilled :: Details Maybe 
+checkFilled ::        Details Maybe 
             -> Maybe (Details Identity)
 checkFilled = 
   traverseDetails (fmap Identity)
@@ -290,8 +294,8 @@ newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
 ```haskell
 apDetails :: 
      Applicative f 
-  => Details (Fn f g h) 
-  -> Details g 
+  =>    Details (Fn f g h) 
+  ->    Details g 
   -> f (Details h)
 apDetails (Details fnIdent fnInitials fnDOB fnWeight) 
           (Details ident initials dob weight) =
@@ -344,7 +348,7 @@ newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
 
 ```haskell
 validateDetails :: 
-     Details Maybe 
+                                Details Maybe 
   -> Validation [DetailsError] (Details Identity)
 validateDetails =
   apDetails detailsFn
@@ -412,18 +416,16 @@ class GEq f where
   geq :: f a -> f b -> Maybe (a := b) 
 ```
 
-```haskell
-data a := b where
-  Refl :: a := a
-```
-
 ##
 
 ```haskell
 instance GEq PatientInformationTag where
-  geq DetailsTag DetailsTag = Just Refl
-  geq IdTag IdTag = Just Refl
-  geq _ _ = Nothing
+  geq DetailsTag DetailsTag = 
+    Just Refl
+  geq IdTag IdTag = 
+    Just Refl
+  geq _ _ = 
+    Nothing
 ```
 
 ## From `Data.GADT.Compare`
@@ -444,10 +446,14 @@ data GOrdering a b where
 
 ```haskell
 instance GCompare PatientInformationTag where
-  gcompare DetailsTag DetailsTag = GEQ
-  gcompare DetailsTag _ = GLT
-  gcompare _ DetailsTag = GGT
-  gcompare IdTag IdTag = GEQ
+  gcompare DetailsTag DetailsTag = 
+    GEQ
+  gcompare DetailsTag _ = 
+    GLT
+  gcompare _ DetailsTag = 
+    GGT
+  gcompare IdTag IdTag = 
+    GEQ
 ```
 
 ##
@@ -481,11 +487,18 @@ deriveGShow ''PatientInformationTag
 
 ##
 
--- show the type
+```haskell
+-- from Data.Dependent.Map
+
+data DMap k f = ...
+```
 
 ##
 
--- show fromList / toList
+```haskell
+toList   :: GCompare k =>  DMap k f  -> [DSum k f]
+fromList :: GCompare k => [DSum k f] ->  DMap k f
+```
 
 ##
 
@@ -493,13 +506,17 @@ deriveGShow ''PatientInformationTag
 
 ##
 
--- show the typeclasses from DSum
+-- show map and traverse
 
 ##
 
--- show map and traverse
+-- show the vessel example but in DMap land, and how to do validation with it
 
 # DMap and tricks with keys
+
+##
+
+-- mention Some type somewhere in here
 
 ##
 
@@ -508,46 +525,259 @@ deriveGShow ''PatientInformationTag
 ##
 
 -- show what you can do with nested keys
+-- - create unions, query unions
 
-# DMap and Constraints
+# Interlude: `constraints` and `constraints-extras`
+
+##
+
+```haskell
+data Dict :: Constraint -> * where
+  Dict :: a => Dict a
+```
+
+```haskell
+withDict :: Dict a -> (a => r) -> r 
+```
+
+##
+
+```haskell
+myDictionary :: Dict (Eq X)
+myFunction   :: Eq X => Y
+
+result :: Y
+result = 
+  withDict myDictionary myFunction
+```
+
+##
+
+```haskell
+newtype a :- b
+```
+
+```haskell
+Ord a :- Eq a
+```
+
+```haskell
+(\\) :: a => (b => r) -> (a :- b) -> r 
+```
+
+##
+
+```haskell
+instF     :: forall p f a. ForallF p f :- p (f a) 
+```
+
+```haskell
+whichever :: forall c t a r. (ForallF c t) => (c (t a) => r) -> r
+```
+
+```haskell
+--  ForallF ToJSON k -- For any (a), we have an instance (ToJSON (k a))
+```
+
+##
+
+```haskell
+class ArgDict f where
+  type ConstraintsFor f (c :: k -> Constraint) :: Constraint
+  argDict :: ConstraintsFor f c => f a -> Dict (c a)
+```
+
+```haskell
+deriveArgDict ''PatientInformationTag
+```
+
+##
+
+```haskell
+type Has (c :: k -> Constraint) f = 
+  (ArgDict f, ConstraintsFor f c)
+```
+
+```haskell
+has :: forall c f a r. (Has c f) => f a -> (c a => r) -> r
+```
+
+```haskell
+--  Has ToJSON k -- For any (k a), we have an instance (ToJSON a)
+```
+
+##
+
+```haskell
+type ConstraintsFor' f (c :: k -> Constraint) (g :: k' -> k) =
+  ConstraintsFor f (ComposeC c g)
+```
+
+```haskell
+type Has' (c :: k -> Constraint) f (g :: k' -> k) = 
+  (ArgDict f, ConstraintsFor' f c g)
+```
+
+```haskell
+has' :: forall c g f a r. (Has' c f g) => f a -> (c (g a) => r) -> r
+```
+
+```haskell
+--  Has' ToJSON k f -- For any (k a), we have an instance (ToJSON (f a))
+```
 
 ##
 
 -- JSON example
+--  Has ToJSON k -- Given a value of type (k a), we can obtain an instance (ToJSON a)
+--  Has' ToJSON k f -- Given a value of type (k a), we can obtain an instance (ToJSON (f a))
+--  ForallF ToJSON k -- For any (a), we have an instance (ToJSON (k a))
 
-##
-
--- show class
-
-##
-
--- show TH to get class
-
-##
-
--- show the constraints level usage
-
-##
-
--- show the term level usage
+```haskell
+instance forall k f.
+  ( Has' ToJSON k f -- Given a value of type (k a), we can obtain an instance (ToJSON (f a))
+  , ForallF ToJSON k -- For any (a), we have an instance (ToJSON (k a))
+  ) => ToJSON (DSum k f) where
+  toJSON (DSum (k :: k a) f) = toJSON
+    ( whichever @ToJSON @k @a $ toJSON k -- Use the (ForallF ToJSON k) constraint to obtain the (ToJSON (k a)) instance
+    , has' @ToJSON @f k $ toJSON f -- Use the (Has' ToJSON k f) constraint to obtain the (ToJSON (f a)) instance
+    )
+```
 
 # Vessel
 
 ##
 
--- show the View typeclass
+```haskell
+class View (v :: (* -> *) -> *) where
+  condenseV :: 
+    (Foldable t, FunctorMaybe t, Functor t) 
+    => t (v g) -> v (Compose t g)
+  disperseV :: 
+    (Align t) 
+    => v (Compose t g) -> t (v g)
+  cropV :: 
+    (forall a. s a -> i a -> r a) -> v s -> v i -> v r
+  nullV :: 
+    v i -> Bool
+  mapV :: 
+    (forall a. f a -> g a) -> v f -> v g
+  traverseV :: 
+    (Applicative m) 
+    => (forall a. f a -> m (g a)) -> v f -> m (v g)
+  mapMaybeV :: 
+    (forall a. f a -> Maybe (g a)) -> v f -> Maybe (v g)
+```
 
 ##
 
--- show the various things which are instances of it
+```haskell
+newtype IdentityV (a :: *) (g :: * -> *) = 
+  IdentityV { unIdentityV :: g a }
+```
+
+```haskell
+instance View (IdentityV a) where
+  ...
+```
 
 ##
 
--- show Vessel itself
+```haskell
+newtype SingleV (a :: *) (g :: * -> *) = 
+  SingleV { unSingleV :: g (First (Maybe a)) }
+```
+
+```haskell
+instance View (SingleV a) where
+  ...
+```
 
 ##
 
--- show a use of Vessel
+```haskell
+newtype MapV k v g = 
+  MapV { unMapV :: MonoidalMap k (g v) }
+```
+
+```haskell
+instance View (MapV k v)  where
+  ...
+```
+
+##
+
+```haskell
+newtype DMapV (k :: * -> *) (v :: * -> *) g = 
+  DMapV { unDMapV :: MonoidalDMap k (Compose g v) }
+```
+
+```haskell
+instance View (DMapV k v)  where
+  ...
+```
+
+##
+
+```haskell
+newtype Vessel (k :: ((* -> *) -> *) -> *) (g :: * -> *) = 
+  Vessel { unVessel :: MonoidalDMap k (FlipAp g) }
+
+newtype FlipAp (g :: k) (v :: k -> *) = 
+  FlipAp { unFlipAp :: v g }
+```
+
+```haskell
+instance (Has View k, GCompare k) => View (Vessel k) where
+  ...
+```
+
+##
+
+```haskell
+type ConstraintsForV (f :: (k -> k') -> *) (c :: k' -> Constraint) (g :: k) = 
+  ConstraintsFor f (FlipC (ComposeC c) g)
+```
+
+```haskell
+type HasV c f g = 
+  (ArgDict f, ConstraintsForV f c g)
+```
+
+```haskell
+hasV :: forall c g f v r. (HasV c f g) => f v -> (c (v g) => r) -> r
+```
+
+```haskell
+--  HasV ToJSON k f -- For any (k v), we have an instance (ToJSON (v f))
+```
+
+##
+
+```haskell
+instance (GCompare k, ForallF ToJSON k, HasV ToJSON k g) => ToJSON (Vessel k g) where
+  ...
+instance (GCompare k, FromJSON (Some k), HasV FromJSON k g) => FromJSON (Vessel k g) where
+  ...
+```
+
+##
+
+TODO show uses
+
+##
+
+```haskell
+data DetailsKey a where
+  DKInitials :: DetailsKey (IdentityV Text)
+  DKDOB      :: DetailsKey (IdentityV Day)
+  DKWeight   :: DetailsKey (SingleV Weight)
+  DKDisease  :: DetailsKey (DMapV ExistingConditionKey Identity)
+```
+
+##
+
+TODO validate, condense and disperse, query
 
 # Example: Configuration
 
