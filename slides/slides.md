@@ -13,25 +13,42 @@ Sometimes we have a problem that is best modeled as a heterogenous map.
 data ExistingConditions =
   ExistingConditions {
     ecDiabetes :: Maybe DiabetesInfo
-  , ecCancer :: Map CancerType CancerStage
-  , ecEpilepsy :: Any
+  , ecCancer   :: Map CancerType CancerStage
+  , ecEpilepsy :: Bool
   } deriving (Eq, Ord, Show)
 ```
 
 ##
 
--- code for doing validation over that pile of maps
+```haskell
+data ExistingConditions f =
+  ExistingConditions {
+    ecDiabetes :: f (Maybe DiabetesInfo)
+  , ecCancer   :: Map CancerType (f CancerStage)
+  , ecEpilepsy :: f Bool
+  } deriving (Eq, Ord, Show)
+```
 
 ##
 
--- why you might want something like DMap
+```haskell
+checkFilled ::
+            ExistingConditions Maybe 
+  -> Maybe (ExistingConditions Identity)
+checkFilled (ExistingConditions d c e) =
+  ExistingConditions       <$> 
+    fmap Identity        d <*> 
+    fmap (fmap Identity) c <*> 
+    fmap Identity        e
+```
 
 ##
 
 ```haskell
 data ExistingConditionKey a where
   ECDiabetes :: ExistingConditionKey DiabetesInfo
-  ECCancer :: CancerType -> ExistingConditionKey CancerStage
+  ECCancer   :: CancerType 
+             -> ExistingConditionKey CancerStage
   ECEpilepsy :: ExistingConditionKey ()
 ```
 
@@ -42,13 +59,34 @@ type ExistingCondition =
 
 ##
 
--- TODO traverseWithKey example
+`Data.Dependent.Map` 
+
+- just like `Data.Map`, only dependentier!
 
 ##
 
 ```haskell
 type ExistingConditionForm = 
   DMap ExistingConditionKey Maybe
+```
+
+##
+
+```haskell
+traverseWithKey :: 
+     Applicative t 
+  => (forall v. k v -> f v -> t (g v)) 
+  -> DMap k f -> t (DMap k g) 
+```
+
+##
+
+```haskell
+checkFilled ::
+            DMap ExistingConditionKey Maybe 
+  -> Maybe (DMap ExistingConditionKey Identity)
+checkFilled = 
+  traverseWithKey (fmap Identity)
 ```
 
 ##
@@ -72,10 +110,6 @@ newtype Validator x =
 type ExistingConditionValidators = 
   DMap ExistingConditionKey Validator
 ```
-
-##
-
-TODO something around widgets?
 
 # GADTs
 
@@ -102,8 +136,11 @@ Int -> PatientInformation
 {-# LANGUAGE GADTs #-}
 
 data PatientInformation where
-  PatientDetails :: Text -> Day -> PatientInformation
-  PatientId :: Int -> PatientInformation
+  PatientDetails :: Text 
+                 -> Day 
+                 -> PatientInformation
+  PatientId      :: Int 
+                 -> PatientInformation
 ```
 
 ## Phantom types
@@ -126,27 +163,33 @@ data PatientInformation (a :: PatientStatus) =
 ```
 
 ```haskell
-newPatient :: Text 
-           -> Day 
-           -> PatientInformationNewPatient 
-                   -> IO (PatientInformation 'InSystem)
-addPatientToSystem (PatientDetails initials dob) = 
-  pure (PatientId 0)
+newPatient :: 
+     Text 
+  -> Day 
+  ->     PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = do
+  i <- actuallyAddThePatientDetails initials dob
+  pure (PatientId i)
 addPatientToSystem (PatientId i) = 
-  error "awkward..."
+  pure (PatientId i)
 ```
 
 ## GADT version
 
 ```haskell
 data PatientInformation (a :: PatientStatus) where
-  PatientDetails :: Text -> Day -> PatientInformation 'NewPatient
-  PatientId :: Int -> PatientInformation 'InSystem
+  PatientDetails :: Text 
+                 -> Day 
+                 -> PatientInformation 'NewPatient
+  PatientId      :: Int 
+                 -> PatientInformation 'InSystem
 ```
 
 ```haskell
-addPatientToSystem :: PatientInformation 'NewPatient 
-                   -> IO (PatientInformation 'InSystem)
+addPatientToSystem :: 
+         PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
 addPatientToSystem (PatientDetails initials dob) = 
   pure (PatientId 0)
 ```
@@ -279,8 +322,9 @@ traverseDetails f (Details ident initials dob weight) =
 ```
 
 ```haskell
-checkFilled ::        Details Maybe 
-            -> Maybe (Details Identity)
+checkFilled ::
+            Details Maybe 
+  -> Maybe (Details Identity)
 checkFilled = 
   traverseDetails (fmap Identity)
 ```
@@ -397,7 +441,7 @@ data PatientInformationTag a where
 
 ```haskell
 addPatientToSystem :: 
-     DSum PatientInformationTag Maybe
+         DSum PatientInformationTag Maybe
   -> IO (DSum PatientInformationTag Identity)
 addPatientToSystem (DetailsTag :=> Nothing) =
   error "information not available"
@@ -478,9 +522,9 @@ The `dependent-sum-template` package can create these instances for us.
 import Data.GADT.Compare.TH
 import Data.GADT.Show.TH
 
-deriveGEq ''PatientInformationTag
+deriveGEq      ''PatientInformationTag
 deriveGCompare ''PatientInformationTag
-deriveGShow ''PatientInformationTag
+deriveGShow    ''PatientInformationTag
 ```
 
 # DMap
@@ -496,21 +540,108 @@ data DMap k f = ...
 ##
 
 ```haskell
-toList   :: GCompare k =>  DMap k f  -> [DSum k f]
-fromList :: GCompare k => [DSum k f] ->  DMap k f
+toList   ::
+                 DMap k f  -> [DSum k f]
+fromList :: 
+  GCompare k => [DSum k f] ->  DMap k f
 ```
 
 ##
 
--- show singelton / insert / update / delete
+```haskell
+singleton :: 
+  k v -> f v -> DMap k f
+```
+
+```haskell
+insert :: 
+     GCompare k 
+  => k v -> f v -> DMap k f -> DMap k f
+```
+
+```haskell
+delete :: 
+     GCompare k 
+  => k v -> DMap k f -> DMap k f
+```
+
+```haskell
+adjust :: 
+     GCompare k 
+  => (f v -> f v) 
+  -> k v -> DMap k f -> DMap k f
+```
+
+```haskell
+update :: 
+     GCompare k 
+  => (f v -> Maybe (f v)) 
+  -> k v -> DMap k f -> DMap k f
+```
 
 ##
 
--- show map and traverse
+```haskell
+union :: 
+     GCompare k 
+  => DMap k f -> DMap k f -> DMap k f
+unionWithKey :: 
+      GCompare k 
+  => (k v -> f v -> f v -> f v) 
+  -> DMap k f -> DMap k f -> DMap k f
+```
+
+##
+
+```haskell
+difference :: 
+     GCompare k 
+  => DMap k f -> DMap k g -> DMap k f
+differenceWithKey :: 
+     GCompare k 
+  => (forall v. k v -> f v -> g v -> Maybe (f v)) 
+  -> DMap k f -> DMap k g -> DMap k f
+```
+
+##
+
+```haskell
+intersection :: 
+     GCompare k 
+  => DMap k f -> DMap k f -> DMap k f
+intersectionWithKey :: 
+  GCompare k 
+  => (forall v. k v -> f v -> g v -> h v) 
+  -> DMap k f -> DMap k g -> DMap k h
+```
+
+##
+
+```haskell
+mapWithKey :: 
+  (forall v. k v -> f v -> g v) 
+  -> DMap k f -> DMap k g 
+```
+
+```haskell
+mapMaybeWithKey :: 
+     GCompare k 
+  => (forall v. k v -> f v -> Maybe (g v)) 
+  -> DMap k f -> DMap k g 
+```
+
+```haskell
+traverseWithKey :: 
+     Applicative t 
+  => (forall v. k v -> f v -> t (g v)) 
+  -> DMap k f -> t (DMap k g) 
+```
 
 ##
 
 -- show the vessel example but in DMap land, and how to do validation with it
+
+-- talk about having the full keyset compared to having some things missing on occasion
 
 # DMap and tricks with keys
 
@@ -656,10 +787,36 @@ class View (v :: (* -> *) -> *) where
   disperseV :: 
     (Align t) 
     => v (Compose t g) -> t (v g)
+  ...
+```
+
+```haskell
+condenseV :: 
+  Map Id (Details Maybe) -> Details (Compose (Map Id) Maybe)
+```
+
+```haskell
+disperseV :: 
+  Details (Compose (Map Id) Maybe) -> Map Id (Details Maybe)
+```
+
+##
+
+```haskell
+class View (v :: (* -> *) -> *) where
+  ...
   cropV :: 
     (forall a. s a -> i a -> r a) -> v s -> v i -> v r
   nullV :: 
     v i -> Bool
+  ...
+```
+
+##
+
+```haskell
+class View (v :: (* -> *) -> *) where
+  ...
   mapV :: 
     (forall a. f a -> g a) -> v f -> v g
   traverseV :: 
@@ -734,6 +891,24 @@ instance (Has View k, GCompare k) => View (Vessel k) where
 
 ##
 
+TODO show uses
+
+##
+
+```haskell
+data DetailsKey a where
+  DKInitials :: DetailsKey (IdentityV Text)
+  DKDOB      :: DetailsKey (IdentityV Day)
+  DKWeight   :: DetailsKey (SingleV Weight)
+  DKDisease  :: DetailsKey (DMapV ExistingConditionKey Identity)
+```
+
+##
+
+TODO validate, condense and disperse, query
+
+##
+
 ```haskell
 type ConstraintsForV (f :: (k -> k') -> *) (c :: k' -> Constraint) (g :: k) = 
   ConstraintsFor f (FlipC (ComposeC c) g)
@@ -761,53 +936,79 @@ instance (GCompare k, FromJSON (Some k), HasV FromJSON k g) => FromJSON (Vessel 
   ...
 ```
 
+# Making things more dynamic
+
+## 
+
+The `prim-uniq` package gives us the ability to create keys at runtime.
+
 ##
 
-TODO show uses
+These tags have `GEq`, `GCompare` and `GShow` instances.
+
+## 
+
+We need to create new tags in either the `IO` or the `ST` monad.
 
 ##
 
 ```haskell
-data DetailsKey a where
-  DKInitials :: DetailsKey (IdentityV Text)
-  DKDOB      :: DetailsKey (IdentityV Day)
-  DKWeight   :: DetailsKey (SingleV Weight)
-  DKDisease  :: DetailsKey (DMapV ExistingConditionKey Identity)
+newTag :: PrimMonad m => m (Tag (PrimState m) a)
 ```
 
 ##
 
-TODO validate, condense and disperse, query
+```haskell
+data NoteEntryKey a where
+  NEKNote :: (Eq a, Ord a, Show a, Read a) 
+          => Tag (PrimState IO) a 
+          -> NoteEntryKey a
+```
 
-# Example: Configuration
-
-## 
-
--- talk about the problem
-
-##
-
--- talk about the solution
-
-
-# Example: Validation
-
-## 
-
--- talk about the problem
+```haskell
+newtype Notes f = 
+  Notes { getNotes :: DMap NoteEntryKey f }
+```
 
 ##
 
--- talk about the solution
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+  tag <- newTag
+  let
+    dm  = getNotes n
+    dm' = DMap.insert (NEKNote tag) (Identity a) dm
+    n'  = Notes dm'
+  pure n'
 
-# Example: Dynamic tags
-
-## 
-
--- talk about the problem
+```
 
 ##
 
--- talk about the solution
+```haskell
+noteExample :: IO ()
+noteExample = do
+  let ns = Notes DMap.empty
+  ns'  <- addNote (1 :: Int)      ns
+  ns'' <- addNote (False :: Bool) ns'
+  print ns''
+```
+
+```haskell
+> noteExample
+Notes {getNotes = fromList [
+    NEKNote 0 :=> Identity 1
+  , NEKNote 1 :=> Identity False
+  ]}
+```
 
 # Conclusion
+
+##
+
+-- TODO

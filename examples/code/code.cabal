@@ -31,6 +31,7 @@ library
                      , DSum.Example
                      , Vessel
                      , DMap
+                     , Notes
   build-depends:       base >=4.11 && <4.12
                      , containers
                      , text
@@ -42,6 +43,8 @@ library
                      , constraints
                      , constraints-extras
                      , validation
+                     , primitive
+                     , prim-uniq
                      , vessel
                      , reflex
   hs-source-dirs:      src

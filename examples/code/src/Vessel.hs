@@ -166,7 +166,7 @@ detailsValidator =
     DKInitials :~> IdentityV (Validator validateInitials)
   , DKDOB :~> IdentityV (Validator validateDOB)
   , DKWeight :~> SingleV (Validator $ fmap (fmap First) . validateWeight . fmap getFirst)
-  , DKDisease :~> DMapV MonoidalDMap.empty
+  , DKDisease :~> DMapV _ -- MonoidalDMap.empty
   ]
 
 validateDetails :: Details Maybe -> Validation [DetailsError] (Details Identity)
