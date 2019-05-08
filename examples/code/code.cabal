@@ -31,6 +31,7 @@ library
                      , DSum.Example
                      , Vessel
                      , DMap
+                     , Keys
                      , Notes
   build-depends:       base >=4.11 && <4.12
                      , containers
@@ -47,6 +48,7 @@ library
                      , prim-uniq
                      , vessel
                      , reflex
+                     , lens
   hs-source-dirs:      src
   ghc-options:         -Wall
   default-language:    Haskell2010

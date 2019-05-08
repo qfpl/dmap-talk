@@ -1202,6 +1202,14 @@ deriveGCompare ''PatientInformationTag
 deriveGShow    ''PatientInformationTag
 ```
 
+##
+
+```haskell
+{-# LANGUAGE StandaloneDeriving #-}
+
+deriving instance Show (PatientInformationTag a)
+```
+
 # DMap
 
 ## From `Data.Dependent.Map`
@@ -1326,22 +1334,235 @@ traverseWithKey ::
 -- show the vessel example but in DMap land, and how to do validation with it
 
 -- talk about having the full keyset compared to having some things missing on occasion
+-- proxy for querying probably comes in here
 
 # DMap and tricks with keys
 
+## A bonus GADT
+
+```haskell
+data Some (tag :: k -> *) where
+  This :: Some tag	 
+```
+
+```haskell
+keys :: 
+      DMap k f 
+  -> [Some k] 
+```
+
+```haskell
+
+  
+```
+
+## A bonus GADT
+
+```haskell
+data Some (tag :: k -> *) where
+  This :: Some tag	 
+```
+
+```haskell
+keys :: 
+      DMap k f 
+  -> [Some k] 
+```
+
+```haskell
+> DMap.keys myTestMap
+  
+```
+
+## A bonus GADT
+
+```haskell
+data Some (tag :: k -> *) where
+  This :: Some tag	 
+```
+
+```haskell
+keys :: 
+      DMap k f 
+  -> [Some k] 
+```
+
+```haskell
+> DMap.keys myTestMap
+[This DKInitials, This DKDOB]
+```
+
+## Nesting keys
+
+```haskell
+data NewPatientKey a where
+  NPKInitials :: NewPatientKey Text
+  NPKDOB      :: NewPatientKey Day
+```
+
+```haskell
+data InSystemKey a where
+  ISKId :: InSystemKey Int
+```
+
+```haskell
+
+
+  
+```
+
+## Nesting keys
+
+```haskell
+data NewPatientKey a where
+  NPKInitials :: NewPatientKey Text
+  NPKDOB      :: NewPatientKey Day
+```
+
+```haskell
+data InSystemKey a where
+  ISKId :: InSystemKey Int
+```
+
+```haskell
+data DetailsKey a where
+  DKNewPatient :: NewPatientKey a -> DetailsKey a
+  DKInSystem   :: InSystemKey a   -> DetailsKey a
+```
+
+## Nested keys give us unions
+
+```haskell
+injectNewPatient :: 
+     DMap NewPatientKey f 
+  -> DMap DetailsKey f
+injectNewPatient = 
+  DMap.mapKeysMonotonic DKNewPatient
+```
+
 ##
 
--- mention Some type somewhere in here
+```haskell
+testDMap :: 
+     GCompare k
+  => DMap k Proxy
+  -> DMap k f
+  -> DMap k Proxy
+testDMap =
+  DMap.intersectionWithKey (\_ p _ -> p)
+```
+
+```haskell
+matchesDMap :: 
+     (EqTag k Proxy, GCompare k)
+  => DMap k Proxy
+  -> DMap k f
+  -> Bool
+matchesDMap dmp dmf =
+  dmp == testDMap dmp dmf
+```
 
 ##
 
--- show what you can do with classy prisms for keys
+```haskell
+newPatientTest :: 
+  DMap DetailsKey Proxy
+newPatientTest =
+  injectNewPatient . DMap.fromList $ [
+    NPKInitials :=> Proxy
+  , NPKDOB :=> Proxy
+  ]
+```
 
-##
 
--- show what you can do with nested keys
--- - create unions, query unions
--- - union for newpatient vs insystem, break newpatient up into multiple keys (date and initials)
+```haskell
+isNewPatient :: 
+     DMap DetailsKey f 
+  -> Bool
+isNewPatient =
+  matchesDMap newPatientTest
+```
+
+## Classy prisms for keys
+
+```haskell
+class HasNewPatient k where
+  _NewPatient :: forall x. Prism' (k x) (NewPatientKey x)
+
+  ...
+```
+
+## Classy prisms for keys
+
+```haskell
+class HasNewPatient k where
+  ...
+
+  _Initials :: Prism' (k Text) ()
+  _Initials =
+    let
+      _NPKInitials :: Prism' (NewPatientKey Text) ()
+      _NPKInitials = prism (const NPKInitials) $ \x -> 
+        case x of
+          NPKInitials -> Right ()
+    in
+      _NewPatient . _NPKInitials
+      
+  ...
+```
+
+## Classy prisms for keys
+
+```haskell
+class HasNewPatient k where
+  ...
+
+  _DOB :: Prism' (k Day) ()
+  _DOB =
+    let
+      _NPKDOB :: Prism' (NewPatientKey Day) ()
+      _NPKDOB = prism (const NPKDOB) $ \x -> 
+        case x of
+          NPKDOB -> Right ()
+    in
+      _NewPatient . _NPKDOB
+```
+
+## Classy prisms for keys
+
+```haskell
+instance HasNewPatient NewPatientKey where
+  _NewPatient = id
+```
+
+```haskell
+instance HasNewPatient DetailsKey where
+  _NewPatient = prism DKNewPatient $ \x -> case x of
+    DKNewPatient k -> Right k
+    _ -> Left x
+```
+
+## Classy prisms for keys
+
+```haskell
+newPatientTest :: 
+     (GCompare k, HasNewPatient k) 
+  => DMap k Proxy
+newPatientTest =
+  DMap.fromList [
+    _Initials # () :=> Proxy
+  , _DOB      # () :=> Proxy
+  ]
+```
+
+```haskell
+isNewPatient :: 
+     (EqTag k Proxy, GCompare k, HasNewPatient k)
+  => DMap k f 
+  -> Bool
+isNewPatient =
+  matchesDMap newPatientTest
+```
 
 # Making things more dynamic
 
@@ -1557,7 +1778,7 @@ Notes {getNotes = fromList [
   ]}
 ```
 
-# Interlude: `constraints` and `constraints-extras`
+# `constraints` and `constraints-extras`
 
 ##
 
