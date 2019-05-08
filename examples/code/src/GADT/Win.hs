@@ -32,4 +32,4 @@ collatz = Lam $ \x ->
 
 testMe :: AST Int
 testMe =
-  Ap collatz (IntLit 13)
+  Ap collatz (IntLit 7)

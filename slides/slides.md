@@ -20,6 +20,10 @@ data ExistingConditions =
 
 ##
 
+Adding more `Functor`s to things is always an improvement<sup>*</sup>.
+
+##
+
 ```haskell
 data ExistingConditions f =
   ExistingConditions {
@@ -44,6 +48,10 @@ checkFilled (ExistingConditions d c e) =
 
 ##
 
+Adding more type system features to things is _also_ always an improvement<sup>**</sup>.
+
+##
+
 ```haskell
 data ExistingConditionKey a where
   ECDiabetes :: ExistingConditionKey DiabetesInfo
@@ -61,7 +69,7 @@ type ExistingCondition =
 
 `Data.Dependent.Map` 
 
-- just like `Data.Map`, only dependentier!
+> - just like `Data.Map`, only dependentier!
 
 ##
 
@@ -153,19 +161,93 @@ data PatientStatus =
     NewPatient 
   | InSystem
   deriving (Eq, Ord, Show)
-```
 
-```haskell
 data PatientInformation (a :: PatientStatus) =
     PatientDetails Text Day -- initials and dob
   | PatientId Int           -- id in the system
   deriving (Eq, Ord, Show)
 ```
 
+## Phantom types
+
 ```haskell
 newPatient :: 
      Text 
   -> Day 
+  -> PatientInformation 'NewPatient
+newPatient = 
+  PatientDetails
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
+  ->     PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem = _
+
+
+
+  
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
+  ->     PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = do
+
+
+
+  
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
+  ->     PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = do
+  i <- actuallyAddThePatientDetails initials dob
+
+
+  
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
+  ->     PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = do
+  i <- actuallyAddThePatientDetails initials dob
+  pure (PatientId i)
+
+  
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
+  ->     PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = do
+  i <- actuallyAddThePatientDetails initials dob
+  pure (PatientId i)
+addPatientToSystem (PatientId i) = 
+  
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
   ->     PatientInformation 'NewPatient 
   -> IO (PatientInformation 'InSystem)
 addPatientToSystem (PatientDetails initials dob) = do
@@ -173,6 +255,19 @@ addPatientToSystem (PatientDetails initials dob) = do
   pure (PatientId i)
 addPatientToSystem (PatientId i) = 
   pure (PatientId i)
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
+  ->     PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = do
+  i <- actuallyAddThePatientDetails initials dob
+  pure (PatientId i)
+addPatientToSystem (PatientId i) = 
+  pure (PatientId i) -- awful ...
 ```
 
 ## GADT version
@@ -186,12 +281,44 @@ data PatientInformation (a :: PatientStatus) where
                  -> PatientInformation 'InSystem
 ```
 
+## GADT version
+
+```haskell
+addPatientToSystem :: 
+         PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem = _
+  
+```
+
+## GADT version
+
+```haskell
+addPatientToSystem :: 
+         PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = 
+  
+```
+
+## GADT version
+
 ```haskell
 addPatientToSystem :: 
          PatientInformation 'NewPatient 
   -> IO (PatientInformation 'InSystem)
 addPatientToSystem (PatientDetails initials dob) = 
   pure (PatientId 0)
+```
+
+## GADT version
+
+```haskell
+addPatientToSystem :: 
+         PatientInformation 'NewPatient 
+  -> IO (PatientInformation 'InSystem)
+addPatientToSystem (PatientDetails initials dob) = 
+  pure (PatientId 0) -- ... awesome
 ```
 
 ## Existential types
@@ -203,6 +330,8 @@ data PatientInformation = forall a. (Read a, Show a) =>
     PatientDetails Text Day a
   | PatientId Int
 ```
+
+## Existential types
 
 ```haskell
 instance Show PatientInformation where
@@ -233,17 +362,27 @@ data PatientInformation where
                  -> PatientInformation
 ```
 
-## GADTs for the win
+## GADTs for transporting evidence
 
 ```haskell
-data AST a where
-  IntLit :: Int -> AST Int
-  BoolLit :: Bool -> AST Bool
-  Lam :: (a -> AST b) -> AST (a -> b)
-  Ap :: AST (a -> b) -> AST a -> AST b
+data a := b where
+  Refl :: a := a
 ```
 
-## Other GADT fun
+```haskell
+transitive :: 
+    a := b 
+ -> b := c 
+ -> a := c
+transitive ab bc = 
+   
+   
+   
+    
+   
+```
+
+## GADTs for transporting evidence
 
 ```haskell
 data a := b where
@@ -257,12 +396,81 @@ transitive ::
  -> a := c
 transitive ab bc = 
   case ab of
-    Refl ->      -- now we know that a~b
-      case bc of
-        Refl ->  -- now we know that b~c
-          Refl   -- captures that fact that a~c
+    Refl ->      -- now we know that       a ~ b
+    
+    
+   
 ```
 
+## GADTs for transporting evidence
+
+```haskell
+data a := b where
+  Refl :: a := a
+```
+
+```haskell
+transitive :: 
+    a := b 
+ -> b := c 
+ -> a := c
+transitive ab bc = 
+  case ab of
+    Refl ->      -- now we know that       a ~ b
+      case bc of
+        Refl ->  -- now we know that       b ~ c
+  
+```
+
+## GADTs for transporting evidence
+
+```haskell
+data a := b where
+  Refl :: a := a
+```
+
+```haskell
+transitive :: 
+    a := b 
+ -> b := c 
+ -> a := c
+transitive ab bc = 
+  case ab of
+    Refl ->      -- now we know that       a ~ b
+      case bc of
+        Refl ->  -- now we know that       b ~ c
+          Refl   -- captures evidence that a ~ c
+```
+
+## GADTify all of the things
+
+```haskell
+data AST a where
+  IntLit :: Int -> AST Int
+  BoolLit :: Bool -> AST Bool
+  Lam :: (a -> AST b) -> AST (a -> b)
+  Ap :: AST (a -> b) -> AST a -> AST b
+```
+
+## GADTify all of the things
+
+```haskell
+collatzStep :: AST (Int -> Int)
+collatzStep = Lam $ \x -> IntLit $
+  if even x
+  then x `div` 2
+  else 3 * x + 1
+
+collatz :: AST (Int -> Int)
+collatz = Lam $ \x ->
+  if x == 1
+  then IntLit 1
+  else Ap collatz (Ap collatzStep (IntLit x))
+
+testMe :: AST Int
+testMe =
+  Ap collatz (IntLit 7)
+```
 
 # Functor functor
 
@@ -295,8 +503,65 @@ data Details f =
 ```haskell
 mapDetails :: 
      (forall x. g x -> h x) 
-  -> Details g 
-  -> Details h
+  -> Details    g 
+  -> Details           h
+mapDetails f (Details ident initials dob weight) =
+  Details (f ident) (f initials) (f dob) (f weight)
+```
+
+```haskell
+
+ 
+
+
+  
+```
+
+## 
+
+```haskell
+mapDetails :: 
+     (forall x. g x -> h x) 
+  -> Details    g 
+  -> Details           h
+mapDetails f (Details ident initials dob weight) =
+  Details (f ident) (f initials) (f dob) (f weight)
+```
+
+```haskell
+editFilled :: 
+     Details Identity 
+  -> Details Maybe
+editFilled =
+  _
+```
+
+## 
+
+```haskell
+mapDetails :: 
+     (forall x. g x -> h x) 
+  -> Details    g 
+  -> Details           h
+mapDetails f (Details ident initials dob weight) =
+  Details (f ident) (f initials) (f dob) (f weight)
+```
+
+```haskell
+editFilled :: 
+     Details Identity 
+  -> Details Maybe
+editFilled = 
+  mapDetails _
+```
+
+## 
+
+```haskell
+mapDetails :: 
+     (forall x. g x -> h x) 
+  -> Details    g 
+  -> Details           h
 mapDetails f (Details ident initials dob weight) =
   Details (f ident) (f initials) (f dob) (f weight)
 ```
@@ -316,7 +581,67 @@ traverseDetails ::
      Applicative f 
   => (forall x. g x -> f (h x)) 
   ->    Details g 
-  -> f (Details h)
+  -> f (Details           h)
+traverseDetails f (Details ident initials dob weight) =
+  Details <$> f ident <*> f initials <*> f dob <*> f weight
+```
+
+```haskell
+
+
+
+
+  
+```
+
+## 
+
+```haskell
+traverseDetails :: 
+     Applicative f 
+  => (forall x. g x -> f (h x)) 
+  ->    Details g 
+  -> f (Details           h)
+traverseDetails f (Details ident initials dob weight) =
+  Details <$> f ident <*> f initials <*> f dob <*> f weight
+```
+
+```haskell
+checkFilled ::
+            Details Maybe 
+  -> Maybe (Details Identity)
+checkFilled = 
+  _
+```
+
+## 
+
+```haskell
+traverseDetails :: 
+     Applicative f 
+  => (forall x. g x -> f (h x)) 
+  ->    Details g 
+  -> f (Details           h)
+traverseDetails f (Details ident initials dob weight) =
+  Details <$> f ident <*> f initials <*> f dob <*> f weight
+```
+
+```haskell
+checkFilled ::
+            Details Maybe 
+  -> Maybe (Details Identity)
+checkFilled = 
+  traverseDetails _
+```
+
+## 
+
+```haskell
+traverseDetails :: 
+     Applicative f 
+  => (forall x. g x -> f (h x)) 
+  ->    Details g 
+  -> f (Details           h)
 traverseDetails f (Details ident initials dob weight) =
   Details <$> f ident <*> f initials <*> f dob <*> f weight
 ```
@@ -339,8 +664,8 @@ newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
 apDetails :: 
      Applicative f 
   =>    Details (Fn f g h) 
-  ->    Details g 
-  -> f (Details h)
+  ->    Details       g 
+  -> f (Details         h)
 apDetails (Details fnIdent fnInitials fnDOB fnWeight) 
           (Details ident initials dob weight) =
   Details <$>
@@ -353,12 +678,8 @@ apDetails (Details fnIdent fnInitials fnDOB fnWeight)
 ## 
 
 ```haskell
-newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
-```
-
-```haskell
 validateInitials :: 
-     Maybe Text
+                                Maybe    Text
   -> Validation [DetailsError] (Identity Text)
 validateInitials Nothing = 
   Failure [NotSet]
@@ -387,7 +708,33 @@ detailsFn =
 ## 
 
 ```haskell
-newtype Fn f g h x = Fn { runFn :: g x -> f (h x) }
+apDetails :: 
+     Applicative f 
+  => Details (Fn  f                          g     h       ) 
+  -> Details g -> f (Details h)
+
+detailsFn :: 
+     Details (Fn (Validation [DetailsError]) Maybe Identity)
+```
+
+```haskell
+
+
+
+
+  
+```
+
+## 
+
+```haskell
+apDetails :: 
+     Applicative f 
+  => Details (Fn  f                          g     h       ) 
+  -> Details g -> f (Details h)
+
+detailsFn :: 
+     Details (Fn (Validation [DetailsError]) Maybe Identity)
 ```
 
 ```haskell
@@ -443,6 +790,134 @@ data PatientInformationTag a where
 addPatientToSystem :: 
          DSum PatientInformationTag Maybe
   -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem = _
+
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+  error "information not available"
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+  error "information not available"
+addPatientToSystem (DetailsTag :=> Just (initials, dob)) =
+
+
+
+
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+  error "information not available"
+addPatientToSystem (DetailsTag :=> Just (initials, dob)) =
+  pure (IdTag ==> 0) -- some process here...
+
+
+
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+  error "information not available"
+addPatientToSystem (DetailsTag :=> Just (initials, dob)) =
+  pure (IdTag ==> 0) -- some process here...
+addPatientToSystem (IdTag :=> Nothing)
+
+
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+  error "information not available"
+addPatientToSystem (DetailsTag :=> Just (initials, dob)) =
+  pure (IdTag ==> 0) -- some process here...
+addPatientToSystem (IdTag :=> Nothing)
+  error "information not available"
+
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
+addPatientToSystem (DetailsTag :=> Nothing) =
+  error "information not available"
+addPatientToSystem (DetailsTag :=> Just (initials, dob)) =
+  pure (IdTag ==> 0) -- some process here...
+addPatientToSystem (IdTag :=> Nothing)
+  error "information not available"
+addPatientToSystem (IdTag :=> Just i) =
+  
+```
+
+##
+
+```haskell
+addPatientToSystem :: 
+         DSum PatientInformationTag Maybe
+  -> IO (DSum PatientInformationTag Identity)
 addPatientToSystem (DetailsTag :=> Nothing) =
   error "information not available"
 addPatientToSystem (DetailsTag :=> Just (initials, dob)) =
@@ -464,6 +939,85 @@ class GEq f where
 
 ```haskell
 instance GEq PatientInformationTag where
+  -- geq :: f a -> f b -> Maybe (a := b) 
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GEq PatientInformationTag where
+  -- geq :: f a -> f b -> Maybe (a := b) 
+  geq DetailsTag DetailsTag = 
+
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GEq PatientInformationTag where
+  -- geq :: f a -> f b -> Maybe (a := b) 
+  geq DetailsTag DetailsTag = 
+    Just Refl
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GEq PatientInformationTag where
+  -- geq :: f a -> f b -> Maybe (a := b) 
+  geq DetailsTag DetailsTag = 
+    Just Refl
+  geq IdTag IdTag = 
+
+
+  
+```
+
+##
+
+```haskell
+instance GEq PatientInformationTag where
+  -- geq :: f a -> f b -> Maybe (a := b) 
+  geq DetailsTag DetailsTag = 
+    Just Refl
+  geq IdTag IdTag = 
+    Just Refl
+
+  
+```
+
+##
+
+```haskell
+instance GEq PatientInformationTag where
+  -- geq :: f a -> f b -> Maybe (a := b) 
+  geq DetailsTag DetailsTag = 
+    Just Refl
+  geq IdTag IdTag = 
+    Just Refl
+  geq _ _ = 
+  
+```
+
+##
+
+```haskell
+instance GEq PatientInformationTag where
+  -- geq :: f a -> f b -> Maybe (a := b) 
   geq DetailsTag DetailsTag = 
     Just Refl
   geq IdTag IdTag = 
@@ -490,6 +1044,127 @@ data GOrdering a b where
 
 ```haskell
 instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+
+
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+  gcompare DetailsTag DetailsTag = 
+
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+  gcompare DetailsTag DetailsTag = 
+    GEQ
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+  gcompare DetailsTag DetailsTag = 
+    GEQ
+  gcompare DetailsTag _ = 
+
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+  gcompare DetailsTag DetailsTag = 
+    GEQ
+  gcompare DetailsTag _ = 
+    GLT
+
+
+
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+  gcompare DetailsTag DetailsTag = 
+    GEQ
+  gcompare DetailsTag _ = 
+    GLT
+  gcompare _ DetailsTag = 
+
+
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+  gcompare DetailsTag DetailsTag = 
+    GEQ
+  gcompare DetailsTag _ = 
+    GLT
+  gcompare _ DetailsTag = 
+    GGT
+
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
+  gcompare DetailsTag DetailsTag = 
+    GEQ
+  gcompare DetailsTag _ = 
+    GLT
+  gcompare _ DetailsTag = 
+    GGT
+  gcompare IdTag IdTag = 
+  
+```
+
+##
+
+```haskell
+instance GCompare PatientInformationTag where
+  -- gcompare :: f a -> f b -> GOrdering a b
   gcompare DetailsTag DetailsTag = 
     GEQ
   gcompare DetailsTag _ = 
@@ -529,11 +1204,9 @@ deriveGShow    ''PatientInformationTag
 
 # DMap
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
--- from Data.Dependent.Map
-
 data DMap k f = ...
 ```
 
@@ -565,6 +1238,8 @@ delete ::
   => k v -> DMap k f -> DMap k f
 ```
 
+##
+
 ```haskell
 adjust :: 
      GCompare k 
@@ -585,6 +1260,9 @@ update ::
 union :: 
      GCompare k 
   => DMap k f -> DMap k f -> DMap k f
+```
+
+```haskell
 unionWithKey :: 
       GCompare k 
   => (k v -> f v -> f v -> f v) 
@@ -597,6 +1275,9 @@ unionWithKey ::
 difference :: 
      GCompare k 
   => DMap k f -> DMap k g -> DMap k f
+```
+
+```haskell
 differenceWithKey :: 
      GCompare k 
   => (forall v. k v -> f v -> g v -> Maybe (f v)) 
@@ -609,6 +1290,9 @@ differenceWithKey ::
 intersection :: 
      GCompare k 
   => DMap k f -> DMap k f -> DMap k f
+```
+
+```haskell
 intersectionWithKey :: 
   GCompare k 
   => (forall v. k v -> f v -> g v -> h v) 
@@ -657,6 +1341,221 @@ traverseWithKey ::
 
 -- show what you can do with nested keys
 -- - create unions, query unions
+-- - union for newpatient vs insystem, break newpatient up into multiple keys (date and initials)
+
+# Making things more dynamic
+
+## From `prim-uniq`
+
+```haskell
+newtype Tag m a = ...
+
+instance GEq (Tag m) where ...
+instance GCompare (Tag m) where ...
+instance GShow (Tag m) where ...
+```
+
+```haskell
+newTag :: PrimMonad m => m (Tag (PrimState m) a)
+```
+
+##
+
+```haskell
+data NoteEntryKey a where
+  NEKNote :: (Eq a, Ord a, Show a, Read a) 
+          => Tag (PrimState IO) a 
+          -> NoteEntryKey a
+```
+
+```haskell
+newtype Notes f = 
+  Notes { getNotes :: DMap NoteEntryKey f }
+```
+
+##
+
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+
+
+
+
+
+  
+```
+
+##
+
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+  tag <- newTag
+
+
+
+
+  
+```
+
+##
+
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+  tag <- newTag
+  let
+
+
+
+  
+```
+
+##
+
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+  tag <- newTag
+  let
+    dm  = getNotes n
+
+
+  
+```
+
+##
+
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+  tag <- newTag
+  let
+    dm  = getNotes n
+    dm' = DMap.insert (NEKNote tag) (Identity a) dm
+
+  
+```
+
+##
+
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+  tag <- newTag
+  let
+    dm  = getNotes n
+    dm' = DMap.insert (NEKNote tag) (Identity a) dm
+    n'  = Notes dm'
+  
+```
+
+##
+
+```haskell
+addNote :: 
+    (Eq a, Ord a, Show a, Read a) 
+  => a 
+  ->     Notes Identity 
+  -> IO (Notes Identity)
+addNote a n = do
+  tag <- newTag
+  let
+    dm  = getNotes n
+    dm' = DMap.insert (NEKNote tag) (Identity a) dm
+    n'  = Notes dm'
+  pure n'
+```
+
+##
+
+```haskell
+noteExample :: IO ()
+noteExample = do
+
+
+
+  
+```
+
+##
+
+```haskell
+noteExample :: IO ()
+noteExample = do
+  let ns = Notes DMap.empty
+
+
+  
+```
+
+##
+
+```haskell
+noteExample :: IO ()
+noteExample = do
+  let ns = Notes DMap.empty
+  ns'  <- addNote (1 :: Int)      ns
+
+  
+```
+
+##
+
+```haskell
+noteExample :: IO ()
+noteExample = do
+  let ns = Notes DMap.empty
+  ns'  <- addNote (1 :: Int)      ns
+  ns'' <- addNote (False :: Bool) ns'
+  
+```
+
+##
+
+```haskell
+noteExample :: IO ()
+noteExample = do
+  let ns = Notes DMap.empty
+  ns'  <- addNote (1 :: Int)      ns
+  ns'' <- addNote (False :: Bool) ns'
+  print ns''
+```
+
+##
+
+```haskell
+> noteExample
+Notes {getNotes = fromList [
+    NEKNote 0 :=> Identity 1
+  , NEKNote 1 :=> Identity False
+  ]}
+```
 
 # Interlude: `constraints` and `constraints-extras`
 
@@ -936,76 +1835,11 @@ instance (GCompare k, FromJSON (Some k), HasV FromJSON k g) => FromJSON (Vessel 
   ...
 ```
 
-# Making things more dynamic
-
-## 
-
-The `prim-uniq` package gives us the ability to create keys at runtime.
+# Applications
 
 ##
 
-These tags have `GEq`, `GCompare` and `GShow` instances.
-
-## 
-
-We need to create new tags in either the `IO` or the `ST` monad.
-
-##
-
-```haskell
-newTag :: PrimMonad m => m (Tag (PrimState m) a)
-```
-
-##
-
-```haskell
-data NoteEntryKey a where
-  NEKNote :: (Eq a, Ord a, Show a, Read a) 
-          => Tag (PrimState IO) a 
-          -> NoteEntryKey a
-```
-
-```haskell
-newtype Notes f = 
-  Notes { getNotes :: DMap NoteEntryKey f }
-```
-
-##
-
-```haskell
-addNote :: 
-    (Eq a, Ord a, Show a, Read a) 
-  => a 
-  ->     Notes Identity 
-  -> IO (Notes Identity)
-addNote a n = do
-  tag <- newTag
-  let
-    dm  = getNotes n
-    dm' = DMap.insert (NEKNote tag) (Identity a) dm
-    n'  = Notes dm'
-  pure n'
-
-```
-
-##
-
-```haskell
-noteExample :: IO ()
-noteExample = do
-  let ns = Notes DMap.empty
-  ns'  <- addNote (1 :: Int)      ns
-  ns'' <- addNote (False :: Bool) ns'
-  print ns''
-```
-
-```haskell
-> noteExample
-Notes {getNotes = fromList [
-    NEKNote 0 :=> Identity 1
-  , NEKNote 1 :=> Identity False
-  ]}
-```
+-- TODO
 
 # Conclusion
 
