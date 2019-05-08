@@ -1470,7 +1470,7 @@ newPatientTest ::
 newPatientTest =
   injectNewPatient . DMap.fromList $ [
     NPKInitials :=> Proxy
-  , NPKDOB :=> Proxy
+  , NPKDOB      :=> Proxy
   ]
 ```
 
