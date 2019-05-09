@@ -1206,6 +1206,23 @@ deriveGShow    ''PatientInformationTag
 deriving instance Show (PatientInformationTag a)
 ```
 
+##
+
+There are also a few other classes for working with both the key and the value of a `DSum`.
+
+##
+
+```haskell
+class GEq tag => EqTag tag f where
+  eqTagged :: tag a -> tag a 
+           -> f   a -> f   a 
+           -> Bool
+```
+
+##
+
+There is work underway to remove these classes, and we'll see how later on.
+
 # DMap
 
 ## From `Data.Dependent.Map`
@@ -1389,6 +1406,8 @@ newtype Validator x =
   }
 ```
 
+##
+
 ```haskell
 validateInitials :: 
                                 Maybe    Text 
@@ -1417,6 +1436,48 @@ detailsValidator =
 
 ```haskell
 validateDetails :: 
+       Details Maybe 
+  -> Validation 
+      [DetailsError] 
+      (Details Identity)
+validateDetails details =
+  DMap.traverseWithKey 
+    (\_ -> fmap Identity) .
+  DMap.intersectionWithKey 
+    (\_ v m ->
+                 runIdentity <$> runValidator v m)
+    detailsValidator $
+  details
+```
+
+##
+
+```haskell
+validateDetails :: 
+        Details Maybe 
+  -> Validation 
+       (Details (Const [DetailsError])) 
+       (Details Identity)
+validateDetails details =
+  DMap.traverseWithKey 
+    (\_ -> fmap Identity) .
+  DMap.intersectionWithKey 
+    (\k v m -> first (DMap.singleton k . Const) $ 
+                 runIdentity <$> runValidator v m)
+    detailsValidator $
+    details
+```
+
+## Design decision
+
+Should you use `Maybe` to model optional fields, or use the partiality of the `Map`-like abstraction?
+
+##
+
+With `Maybe` to model optional fields:
+
+```haskell
+validateDetails :: 
                                 Details Maybe 
   -> Validation [DetailsError] (Details Identity)
 validateDetails details =
@@ -1424,22 +1485,30 @@ validateDetails details =
     (\_ -> fmap Identity) .
   DMap.intersectionWithKey 
     (\_ v m -> runIdentity <$> runValidator v m) 
-    detailsValidator
+    detailsValidator $
     details
+    
+  
 ```
 
 ##
 
--- weaving const [error] through it is also pretty cool
+With the partiality of the `Map`-like abstraction:
 
--- proxy for querying probably comes in here
--- difference from proxy -> const [error] might be handy
-
-## Design decision
-
-Should you use `Maybe` to model optional fields, or use the partiality of the `Map`-like abstraction?
-
--- TODO talk more about the options here?
+```haskell
+validateDetails :: 
+                                Details Maybe 
+  -> Validation [DetailsError] (Details Identity)
+validateDetails details =
+  DMap.traverseWithKey 
+    (\_ -> fmap Identity) .
+  DMap.intersectionWithKey 
+    (\_ v m -> runIdentity <$> runValidator v m) 
+    detailsValidator $
+    DMap.union 
+      details 
+      (DMap.map (const Nothing) detailsValidator)
+```
 
 # DMap and tricks with keys
 
@@ -2094,7 +2163,8 @@ instance
          Show (DSum k f) where
   showsPrec n ((ka :: k a) :=> fa) =
     _
-    
+
+
    
 ```
 
@@ -2105,7 +2175,8 @@ instance (ForallF Show k)
       => Show (DSum k f) where
   showsPrec n ((ka :: k a) :=> fa) =
     _
-    
+
+
    
 ```
 
@@ -2117,6 +2188,7 @@ instance (ForallF Show k)
   showsPrec n ((ka :: k a) :=> fa) =
     whichever @Show @k @a (showsPrec n ka) .
     _
+
    
 ```
 
@@ -2174,7 +2246,17 @@ has ::
 
 ##
 
-`Has Show DetailsKey` means that for each `DetailsKey a` we have a `Show a`
+```haskell
+Has Show DetailsKey
+```
+means that for each 
+```haskell
+DetailsKey a
+```
+we have a 
+```haskell
+Show a
+```
 
 ##
 
@@ -2198,7 +2280,17 @@ has' :: forall c f k a r.
 
 ##
 
-`Has' Show DetailsKey f` means that for each `DetailsKey a` we have a `Show (f a)`
+```haskell
+Has' Show DetailsKey f
+```
+means that for each 
+```haskell
+DetailsKey a
+```
+we have a 
+```haskell
+Show (f a)
+```
 
 ##
 
@@ -2404,11 +2496,9 @@ instance (GCompare k, FromJSON (Some k), HasV FromJSON k g)
   ...
 ```
 
-# Applications
-
 ##
 
--- TODO
+This can be used for cool things.
 
 # Conclusion
 

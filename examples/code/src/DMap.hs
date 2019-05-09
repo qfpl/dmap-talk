@@ -136,9 +136,15 @@ validateDetails2 =
     (\k v m -> first (DMap.singleton k . Const) $ runIdentity <$> runValidator v m)
     detailsValidator
 
-instance (ForallF Show k, Has' Show k f)
-      => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
-    whichever @Show @k @a (showsPrec n ka) .
-    showString " :=> " .
-    has' @Show @f ka (showsPrec n fa)
+validateDetails3 :: Details Maybe -> Validation [DetailsError] (Details Identity)
+validateDetails3 details =
+  DMap.traverseWithKey (\_ -> fmap Identity) .
+  DMap.intersectionWithKey (\_ v m -> runIdentity <$> runValidator v m) detailsValidator $
+  DMap.union details (DMap.map (const Nothing) detailsValidator)
+
+-- instance (ForallF Show k, Has' Show k f)
+--       => Show (DSum k f) where
+--   showsPrec n ((ka :: k a) :=> fa) =
+--     whichever @Show @k @a (showsPrec n ka) .
+--     showString " :=> " .
+--     has' @Show @f ka (showsPrec n fa)
