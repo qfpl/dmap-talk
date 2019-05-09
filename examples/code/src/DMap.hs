@@ -4,12 +4,19 @@
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
 module DMap where
 
 import Control.Monad (join)
 
 import Data.Functor.Classes
+import Data.Functor.Const
 import Data.Functor.Identity
+
+import Data.Bifunctor
 
 import Data.Maybe (fromMaybe)
 
@@ -27,6 +34,8 @@ import Data.GADT.Compare.TH
 import Data.GADT.Show
 import Data.GADT.Show.TH
 
+import Data.Constraint.Forall
+import Data.Constraint.Extras
 import Data.Constraint.Extras.TH
 
 import Data.Validation
@@ -65,19 +74,11 @@ instance Show1 f => ShowTag DetailsKey f where
   showTaggedPrec DKWeight _ _ = showString "DKWeight"
   showTaggedPrec DKDisease _ _ = showString "DKDisease"
 
-newtype Details f =
-  Details {
-    getDetails :: DMap DetailsKey f
-  }
-
-deriving instance Eq1 f => Eq (Details f)
-deriving instance Ord1 f => Ord (Details f)
-deriving instance Show1 f => Show (Details f)
+type Details f = DMap DetailsKey f
 
 newDetails :: Details Maybe
 newDetails =
-  Details .
-  DMap.fromList $ [
+  DMap.fromList [
     DKInitials :=> Nothing
   , DKDOB :=> Nothing
   , DKWeight :=> Nothing
@@ -86,15 +87,11 @@ newDetails =
 
 checkFilled :: Details Maybe -> Maybe (Details Identity)
 checkFilled =
-  fmap Details .
-  DMap.traverseWithKey (\_ -> fmap Identity) .
-  getDetails
+  DMap.traverseWithKey (\_ -> fmap Identity)
 
 editFilled :: Details Identity -> Details Maybe
 editFilled =
-  Details .
-  DMap.map (Just . runIdentity) .
-  getDetails
+  DMap.map (Just . runIdentity)
 
 data DetailsError = NotSet | InitialsTooShort
   deriving (Eq, Ord, Show)
@@ -119,8 +116,7 @@ validateDisease md = Success (Identity (fromMaybe DMap.empty md))
 
 detailsValidator :: Details Validator
 detailsValidator =
-  Details .
-  DMap.fromList $ [
+  DMap.fromList [
     DKInitials :=> Validator validateInitials
   , DKDOB      :=> Validator validateDOB
   , DKWeight   :=> Validator validateWeight
@@ -129,7 +125,20 @@ detailsValidator =
 
 validateDetails :: Details Maybe -> Validation [DetailsError] (Details Identity)
 validateDetails =
-  fmap Details .
   DMap.traverseWithKey (\_ -> fmap Identity) .
-  DMap.intersectionWithKey (\_ v m -> runIdentity <$> runValidator v m) (getDetails detailsValidator) .
-  getDetails
+  DMap.intersectionWithKey (\_ v m -> runIdentity <$> runValidator v m) detailsValidator
+
+validateDetails2 :: Details Maybe -> Validation (Details (Const [DetailsError])) (Details Identity)
+validateDetails2 =
+  DMap.traverseWithKey
+    (\_ -> fmap Identity) .
+  DMap.intersectionWithKey
+    (\k v m -> first (DMap.singleton k . Const) $ runIdentity <$> runValidator v m)
+    detailsValidator
+
+instance (ForallF Show k, Has' Show k f)
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    showString " :=> " .
+    has' @Show @f ka (showsPrec n fa)

@@ -154,15 +154,11 @@ data PatientInformation where
 ## Phantom types
 
 ```haskell
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE KindSignatures #-}
 
-data PatientStatus = 
-    NewPatient 
-  | InSystem
-  deriving (Eq, Ord, Show)
+data NewPatient 
+data InSystem
 
-data PatientInformation (a :: PatientStatus) =
+data PatientInformation a =
     PatientDetails Text Day -- initials and dob
   | PatientId Int           -- id in the system
   deriving (Eq, Ord, Show)
@@ -174,7 +170,7 @@ data PatientInformation (a :: PatientStatus) =
 newPatient :: 
      Text 
   -> Day 
-  -> PatientInformation 'NewPatient
+  -> PatientInformation NewPatient
 newPatient = 
   PatientDetails
 ```
@@ -183,8 +179,8 @@ newPatient =
 
 ```haskell
 addPatientToSystem ::
-  ->     PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+  ->     PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem = _
 
 
@@ -196,8 +192,8 @@ addPatientToSystem = _
 
 ```haskell
 addPatientToSystem ::
-  ->     PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+  ->     PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = do
 
 
@@ -209,24 +205,11 @@ addPatientToSystem (PatientDetails initials dob) = do
 
 ```haskell
 addPatientToSystem ::
-  ->     PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
-addPatientToSystem (PatientDetails initials dob) = do
-  i <- actuallyAddThePatientDetails initials dob
-
-
-  
-```
-
-## Phantom types
-
-```haskell
-addPatientToSystem ::
-  ->     PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+  ->     PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = do
   i <- actuallyAddThePatientDetails initials dob
-  pure (PatientId i)
+
 
   
 ```
@@ -235,12 +218,12 @@ addPatientToSystem (PatientDetails initials dob) = do
 
 ```haskell
 addPatientToSystem ::
-  ->     PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+  ->     PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = do
   i <- actuallyAddThePatientDetails initials dob
   pure (PatientId i)
-addPatientToSystem (PatientId i) = 
+
   
 ```
 
@@ -248,12 +231,25 @@ addPatientToSystem (PatientId i) =
 
 ```haskell
 addPatientToSystem ::
-  ->     PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+  ->     PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = do
   i <- actuallyAddThePatientDetails initials dob
   pure (PatientId i)
 addPatientToSystem (PatientId i) = 
+  
+```
+
+## Phantom types
+
+```haskell
+addPatientToSystem ::
+  ->     PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
+addPatientToSystem (PatientDetails initials dob) = do
+  i <- actuallyAddThePatientDetails initials dob
+  pure (PatientId i)
+addPatientToSystem (PatientId i) = 
   pure (PatientId i)
 ```
 
@@ -261,8 +257,8 @@ addPatientToSystem (PatientId i) =
 
 ```haskell
 addPatientToSystem ::
-  ->     PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+  ->     PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = do
   i <- actuallyAddThePatientDetails initials dob
   pure (PatientId i)
@@ -273,20 +269,20 @@ addPatientToSystem (PatientId i) =
 ## GADT version
 
 ```haskell
-data PatientInformation (a :: PatientStatus) where
+data PatientInformation a where
   PatientDetails :: Text 
                  -> Day 
-                 -> PatientInformation 'NewPatient
+                 -> PatientInformation NewPatient
   PatientId      :: Int 
-                 -> PatientInformation 'InSystem
+                 -> PatientInformation InSystem
 ```
 
 ## GADT version
 
 ```haskell
 addPatientToSystem :: 
-         PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+         PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem = _
   
 ```
@@ -295,8 +291,8 @@ addPatientToSystem = _
 
 ```haskell
 addPatientToSystem :: 
-         PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+         PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = 
   
 ```
@@ -305,8 +301,8 @@ addPatientToSystem (PatientDetails initials dob) =
 
 ```haskell
 addPatientToSystem :: 
-         PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+         PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = 
   pure (PatientId 0)
 ```
@@ -315,8 +311,8 @@ addPatientToSystem (PatientDetails initials dob) =
 
 ```haskell
 addPatientToSystem :: 
-         PatientInformation 'NewPatient 
-  -> IO (PatientInformation 'InSystem)
+         PatientInformation NewPatient 
+  -> IO (PatientInformation InSystem)
 addPatientToSystem (PatientDetails initials dob) = 
   pure (PatientId 0) -- ... awesome
 ```
@@ -1218,7 +1214,7 @@ deriving instance Show (PatientInformationTag a)
 data DMap k f = ...
 ```
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
 toList   ::
@@ -1227,7 +1223,7 @@ fromList ::
   GCompare k => [DSum k f] ->  DMap k f
 ```
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
 singleton :: 
@@ -1246,7 +1242,7 @@ delete ::
   => k v -> DMap k f -> DMap k f
 ```
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
 adjust :: 
@@ -1262,7 +1258,7 @@ update ::
   -> k v -> DMap k f -> DMap k f
 ```
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
 union :: 
@@ -1277,7 +1273,7 @@ unionWithKey ::
   -> DMap k f -> DMap k f -> DMap k f
 ```
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
 difference :: 
@@ -1292,7 +1288,7 @@ differenceWithKey ::
   -> DMap k f -> DMap k g -> DMap k f
 ```
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
 intersection :: 
@@ -1307,7 +1303,7 @@ intersectionWithKey ::
   -> DMap k f -> DMap k g -> DMap k h
 ```
 
-##
+## From `Data.Dependent.Map`
 
 ```haskell
 mapWithKey :: 
@@ -1331,10 +1327,118 @@ traverseWithKey ::
 
 ##
 
--- show the vessel example but in DMap land, and how to do validation with it
+```haskell
+data DetailsKey a where
+  DKInitials :: DetailsKey Text
+  DKDOB      :: DetailsKey Day
+  DKWeight   :: DetailsKey (Maybe Weight)
+  DKDisease  :: DetailsKey (DMap ExistingConditionKey Identity)
+```
 
--- talk about having the full keyset compared to having some things missing on occasion
+```haskell
+type Details f = DMap DetailsKey f
+```
+
+##
+
+```haskell
+newDetails :: 
+  Details Maybe
+newDetails =
+  DMap.fromList [
+    DKInitials :=> Nothing
+  , DKDOB :=> Nothing
+  , DKWeight :=> Nothing
+  , DKDisease :=> Just DMap.empty
+  ]
+```
+
+##
+
+```haskell
+checkFilled :: 
+            Details Maybe 
+  -> Maybe (Details Identity)
+checkFilled =
+  DMap.traverseWithKey (\_ -> fmap Identity)
+```
+
+```haskell
+editFilled :: 
+     Details Identity 
+  -> Details Maybe
+editFilled =
+  DMap.map (Just . runIdentity)
+```
+
+##
+
+```haskell
+data DetailsError = 
+    NotSet 
+  | InitialsTooShort
+  deriving (Eq, Ord, Show)
+```
+
+```haskell
+newtype Validator x = 
+  Validator { 
+    runValidator :: 
+                                    Maybe    x 
+      -> Validation [DetailsError] (Identity x) 
+  }
+```
+
+```haskell
+validateInitials :: 
+                                Maybe    Text 
+  -> Validation [DetailsError] (Identity Text)
+validateInitials Nothing = 
+  Failure [NotSet]
+validateInitials (Just t)
+  | Text.length t < 2 = Failure [InitialsTooShort]
+  | otherwise = Success (Identity t)
+```
+
+##
+
+```haskell
+detailsValidator :: Details Validator
+detailsValidator =
+  DMap.fromList [
+    DKInitials :=> Validator validateInitials
+  , DKDOB      :=> Validator validateDOB
+  , DKWeight   :=> Validator validateWeight
+  , DKDisease  :=> Validator validateDisease
+  ]
+```
+
+##
+
+```haskell
+validateDetails :: 
+                                Details Maybe 
+  -> Validation [DetailsError] (Details Identity)
+validateDetails =
+  DMap.traverseWithKey 
+    (\_ -> fmap Identity) .
+  DMap.intersectionWithKey 
+    (\_ v m -> runIdentity <$> runValidator v m) 
+    detailsValidator
+```
+
+##
+
+-- weaving const [error] through it is also pretty cool
+
 -- proxy for querying probably comes in here
+-- difference from proxy -> const [error] might be handy
+
+## Design decision
+
+Should you use `Maybe` to model optional fields, or use the partiality of the `Map`-like abstraction?
+
+-- TODO talk more about the options here?
 
 # DMap and tricks with keys
 
@@ -1783,6 +1887,30 @@ Notes {getNotes = fromList [
 ##
 
 ```haskell
+instance Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) = _
+  
+  
+  
+```
+
+##
+
+```haskell
+instance Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) = _ --- hmmm
+  
+  
+  
+```
+
+##
+
+Let's do some plumbing!
+
+##
+
+```haskell
 data Dict :: Constraint -> * where
   Dict :: a => Dict a
 ```
@@ -1805,37 +1933,222 @@ result =
 ##
 
 ```haskell
-newtype a :- b
+newtype a :- b -- ie Ord X :- Eq X
 ```
 
 ```haskell
-Ord a :- Eq a
-```
+(\\) :: 
 
-```haskell
-(\\) :: a => (b => r) -> (a :- b) -> r 
-```
 
-##
 
-```haskell
-instF     :: forall p f a. ForallF p f :- p (f a) 
-```
-
-```haskell
-whichever :: forall c t a r. (ForallF c t) => (c (t a) => r) -> r
-```
-
-```haskell
---  ForallF ToJSON k -- For any (a), we have an instance (ToJSON (k a))
+  
 ```
 
 ##
 
 ```haskell
-class ArgDict f where
-  type ConstraintsFor f (c :: k -> Constraint) :: Constraint
-  argDict :: ConstraintsFor f c => f a -> Dict (c a)
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  a 
+  =>
+
+  
+```
+
+
+##
+
+```haskell
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  a 
+  => (b => r) 
+  ->
+  
+```
+
+##
+
+```haskell
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  a 
+  => (b => r) 
+  -> (a :- b) 
+  ->
+```
+
+##
+
+```haskell
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  a 
+  => (b => r) 
+  -> (a :- b) 
+  -> r 
+```
+
+##
+
+```haskell
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  a
+  => (b => r) 
+  -> (Ord X :- Eq X) 
+  -> r
+```
+
+##
+
+```haskell
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  Ord X 
+  => (b => r) 
+  -> (Ord X :- Eq X) 
+  -> r
+```
+
+##
+
+```haskell
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  Ord X 
+  => (Eq X => r) 
+  -> (Ord X :- Eq X) 
+  -> r
+```
+
+##
+
+```haskell
+newtype a :- b -- ie Ord X :- Eq X
+```
+
+```haskell
+(\\) :: 
+  Ord X 
+  => (Eq X => Y) 
+  -> (Ord X :- Eq X) 
+  -> Y
+```
+
+##
+
+```haskell
+-- from `constraints`
+instF :: 
+  forall c k a. 
+  ForallF c k :- c (k a) 
+```
+
+```haskell
+-- from `constraints-extras`
+whichever :: 
+  forall c k a r. 
+     (ForallF c k) 
+  => (c (k a) => r) 
+  -> r
+```
+
+##
+
+This
+```haskell
+deriving instance Show (DetailsKey a)
+```
+gives us a
+```haskell
+ForallF Show DetailsKey
+```
+
+##
+
+```haskell
+instance
+         Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    _
+    
+   
+```
+
+##
+
+```haskell
+instance (ForallF Show k) 
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    _
+    
+   
+```
+
+##
+
+```haskell
+instance (ForallF Show k) 
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    _
+   
+```
+
+##
+
+```haskell
+instance (ForallF Show k) 
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    showString " :=> " .
+    _
+   
+```
+
+##
+
+```haskell
+instance (ForallF Show k) 
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    showString " :=> " .
+    _ -- hmm
+   
+```
+
+##
+
+```haskell
+class ArgDict k where
+  type ConstraintsFor k (c :: k1 -> Constraint) :: Constraint
+  argDict :: ConstraintsFor k c => k a -> Dict (c a)
 ```
 
 ```haskell
@@ -1845,54 +2158,89 @@ deriveArgDict ''PatientInformationTag
 ##
 
 ```haskell
-type Has (c :: k -> Constraint) f = 
-  (ArgDict f, ConstraintsFor f c)
+type Has (c :: k1 -> Constraint) k = 
+  (ArgDict k, ConstraintsFor k c)
 ```
 
 ```haskell
-has :: forall c f a r. (Has c f) => f a -> (c a => r) -> r
+has :: 
+  forall c k a r. 
+     (Has c k) 
+  => k a 
+  -> (c a => r) 
+  -> r
+```
+
+##
+
+`Has Show DetailsKey` means that for each `DetailsKey a` we have a `Show a`
+
+##
+
+```haskell
+type ConstraintsFor' k (c :: k1 -> Constraint) (f :: k2 -> k1) =
+  ConstraintsFor k (ComposeC c f)
 ```
 
 ```haskell
---  Has ToJSON k -- For any (k a), we have an instance (ToJSON a)
+type Has' (c :: k1 -> Constraint) k (f :: k2 -> k1) = 
+  (ArgDict k, ConstraintsFor' k c f)
+```
+
+```haskell
+has' :: forall c f k a r. 
+     (Has' c k f) 
+  => k a 
+  -> (c (f a) => r) 
+  -> r
+```
+
+##
+
+`Has' Show DetailsKey f` means that for each `DetailsKey a` we have a `Show (f a)`
+
+##
+
+```haskell
+instance (ForallF Show k               )
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    showString " :=> " .
+    _
 ```
 
 ##
 
 ```haskell
-type ConstraintsFor' f (c :: k -> Constraint) (g :: k' -> k) =
-  ConstraintsFor f (ComposeC c g)
-```
-
-```haskell
-type Has' (c :: k -> Constraint) f (g :: k' -> k) = 
-  (ArgDict f, ConstraintsFor' f c g)
-```
-
-```haskell
-has' :: forall c g f a r. (Has' c f g) => f a -> (c (g a) => r) -> r
-```
-
-```haskell
---  Has' ToJSON k f -- For any (k a), we have an instance (ToJSON (f a))
+instance (ForallF Show k, Has' Show k f)
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    showString " :=> " .
+    _
 ```
 
 ##
 
--- JSON example
---  Has ToJSON k -- Given a value of type (k a), we can obtain an instance (ToJSON a)
---  Has' ToJSON k f -- Given a value of type (k a), we can obtain an instance (ToJSON (f a))
---  ForallF ToJSON k -- For any (a), we have an instance (ToJSON (k a))
+```haskell
+instance (ForallF Show k, Has' Show k f)
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    showString " :=> " .
+    has' @Show @f ka (showsPrec n fa)
+```
+
+##
 
 ```haskell
-instance forall k f.
-  ( Has' ToJSON k f -- Given a value of type (k a), we can obtain an instance (ToJSON (f a))
-  , ForallF ToJSON k -- For any (a), we have an instance (ToJSON (k a))
-  ) => ToJSON (DSum k f) where
-  toJSON (DSum (k :: k a) f) = toJSON
-    ( whichever @ToJSON @k @a $ toJSON k -- Use the (ForallF ToJSON k) constraint to obtain the (ToJSON (k a)) instance
-    , has' @ToJSON @f k $ toJSON f -- Use the (Has' ToJSON k f) constraint to obtain the (ToJSON (f a)) instance
-    )
+instance (ForallF Show k, Has' Show k f)
+      => Show (DSum k f) where
+  showsPrec n ((ka :: k a) :=> fa) =
+    whichever @Show @k @a (showsPrec n ka) .
+    showString " :=> " .
+    has' @Show @f ka (showsPrec n fa) -- hah!
 ```
 
 # Vessel
@@ -2011,16 +2359,16 @@ instance (Has View k, GCompare k) => View (Vessel k) where
 
 ##
 
-TODO show uses
-
-##
-
 ```haskell
 data DetailsKey a where
   DKInitials :: DetailsKey (IdentityV Text)
   DKDOB      :: DetailsKey (IdentityV Day)
   DKWeight   :: DetailsKey (SingleV Weight)
   DKDisease  :: DetailsKey (DMapV ExistingConditionKey Identity)
+```
+
+```haskell
+type Details f = Vessel DetailsKey f
 ```
 
 ##
@@ -2030,17 +2378,22 @@ TODO validate, condense and disperse, query
 ##
 
 ```haskell
-type ConstraintsForV (f :: (k -> k') -> *) (c :: k' -> Constraint) (g :: k) = 
-  ConstraintsFor f (FlipC (ComposeC c) g)
+type ConstraintsForV (k :: (k1 -> k2) -> *) (c :: k2 -> Constraint) (f :: k1) = 
+  ConstraintsFor k (FlipC (ComposeC c) f)
 ```
 
 ```haskell
-type HasV c f g = 
-  (ArgDict f, ConstraintsForV f c g)
+type HasV c k f = 
+  (ArgDict k, ConstraintsForV k c f)
 ```
 
 ```haskell
-hasV :: forall c g f v r. (HasV c f g) => f v -> (c (v g) => r) -> r
+hasV :: 
+  forall c f k v r. 
+     (HasV c k f) 
+  => k v 
+  -> (c (v f) => r) 
+  -> r
 ```
 
 ```haskell
