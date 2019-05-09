@@ -93,8 +93,8 @@ traverseWithKey ::
 checkFilled ::
             DMap ExistingConditionKey Maybe 
   -> Maybe (DMap ExistingConditionKey Identity)
-checkFilled = 
-  traverseWithKey (fmap Identity)
+checkFilled formData = 
+  traverseWithKey (fmap Identity) formData
 ```
 
 ##
@@ -528,7 +528,7 @@ mapDetails f (Details ident initials dob weight) =
 editFilled :: 
      Details Identity 
   -> Details Maybe
-editFilled =
+editFilled filledData =
   _
 ```
 
@@ -547,7 +547,7 @@ mapDetails f (Details ident initials dob weight) =
 editFilled :: 
      Details Identity 
   -> Details Maybe
-editFilled = 
+editFilled filledData = 
   mapDetails _
 ```
 
@@ -566,8 +566,8 @@ mapDetails f (Details ident initials dob weight) =
 editFilled :: 
      Details Identity 
   -> Details Maybe
-editFilled = 
-  mapDetails (Just . runIdentity)
+editFilled filledData = 
+  mapDetails (Just . runIdentity) filledData
 ```
 
 ## 
@@ -606,7 +606,7 @@ traverseDetails f (Details ident initials dob weight) =
 checkFilled ::
             Details Maybe 
   -> Maybe (Details Identity)
-checkFilled = 
+checkFilled formData = 
   _
 ```
 
@@ -626,7 +626,7 @@ traverseDetails f (Details ident initials dob weight) =
 checkFilled ::
             Details Maybe 
   -> Maybe (Details Identity)
-checkFilled = 
+checkFilled formData = 
   traverseDetails _
 ```
 
@@ -646,8 +646,8 @@ traverseDetails f (Details ident initials dob weight) =
 checkFilled ::
             Details Maybe 
   -> Maybe (Details Identity)
-checkFilled = 
-  traverseDetails (fmap Identity)
+checkFilled formData = 
+  traverseDetails (fmap Identity) formData
 ```
 
 ##
@@ -737,8 +737,8 @@ detailsFn ::
 validateDetails :: 
                                 Details Maybe 
   -> Validation [DetailsError] (Details Identity)
-validateDetails =
-  apDetails detailsFn
+validateDetails details =
+  apDetails detailsFn details
 ```
 
 ## 
@@ -1359,16 +1359,16 @@ newDetails =
 checkFilled :: 
             Details Maybe 
   -> Maybe (Details Identity)
-checkFilled =
-  DMap.traverseWithKey (\_ -> fmap Identity)
+checkFilled formData =
+  DMap.traverseWithKey (\_ -> fmap Identity) formData
 ```
 
 ```haskell
 editFilled :: 
      Details Identity 
   -> Details Maybe
-editFilled =
-  DMap.map (Just . runIdentity)
+editFilled filledData =
+  DMap.map (Just . runIdentity) filledData
 ```
 
 ##
@@ -1419,12 +1419,13 @@ detailsValidator =
 validateDetails :: 
                                 Details Maybe 
   -> Validation [DetailsError] (Details Identity)
-validateDetails =
+validateDetails details =
   DMap.traverseWithKey 
     (\_ -> fmap Identity) .
   DMap.intersectionWithKey 
     (\_ v m -> runIdentity <$> runValidator v m) 
     detailsValidator
+    details
 ```
 
 ##
@@ -1540,8 +1541,8 @@ data DetailsKey a where
 injectNewPatient :: 
      DMap NewPatientKey f 
   -> DMap DetailsKey f
-injectNewPatient = 
-  DMap.mapKeysMonotonic DKNewPatient
+injectNewPatient dm = 
+  DMap.mapKeysMonotonic DKNewPatient dm
 ```
 
 ##
@@ -1552,8 +1553,8 @@ testDMap ::
   => DMap k Proxy
   -> DMap k f
   -> DMap k Proxy
-testDMap =
-  DMap.intersectionWithKey (\_ p _ -> p)
+testDMap dmp dmf =
+  DMap.intersectionWithKey (\_ p _ -> p) dmp dmf
 ```
 
 ```haskell
@@ -1583,8 +1584,8 @@ newPatientTest =
 isNewPatient :: 
      DMap DetailsKey f 
   -> Bool
-isNewPatient =
-  matchesDMap newPatientTest
+isNewPatient dmf =
+  matchesDMap newPatientTest dmf
 ```
 
 ## Classy prisms for keys
@@ -1664,8 +1665,8 @@ isNewPatient ::
      (EqTag k Proxy, GCompare k, HasNewPatient k)
   => DMap k f 
   -> Bool
-isNewPatient =
-  matchesDMap newPatientTest
+isNewPatient dmf =
+  matchesDMap newPatientTest dmf
 ```
 
 # Making things more dynamic
@@ -2373,10 +2374,6 @@ type Details f = Vessel DetailsKey f
 
 ##
 
-TODO validate, condense and disperse, query
-
-##
-
 ```haskell
 type ConstraintsForV (k :: (k1 -> k2) -> *) (c :: k2 -> Constraint) (f :: k1) = 
   ConstraintsFor k (FlipC (ComposeC c) f)
@@ -2396,16 +2393,14 @@ hasV ::
   -> r
 ```
 
-```haskell
---  HasV ToJSON k f -- For any (k v), we have an instance (ToJSON (v f))
-```
-
 ##
 
 ```haskell
-instance (GCompare k, ForallF ToJSON k, HasV ToJSON k g) => ToJSON (Vessel k g) where
+instance (GCompare k, ForallF ToJSON k, HasV ToJSON k g) 
+      => ToJSON (Vessel k g) where
   ...
-instance (GCompare k, FromJSON (Some k), HasV FromJSON k g) => FromJSON (Vessel k g) where
+instance (GCompare k, FromJSON (Some k), HasV FromJSON k g) 
+      => FromJSON (Vessel k g) where
   ...
 ```
 
@@ -2419,4 +2414,22 @@ instance (GCompare k, FromJSON (Some k), HasV FromJSON k g) => FromJSON (Vessel 
 
 ##
 
--- TODO
+The ecosystem occupies an interesting point in the design space.
+
+##
+
+"extensible records with all the operations you could ever hope for""
+
+##
+
+```haskell
+flexibility :: Power -> Responsibility
+```
+
+##
+
+Some of the best practices are still emerging.
+
+##
+
+Questions?
