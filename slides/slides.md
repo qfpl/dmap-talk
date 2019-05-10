@@ -1855,7 +1855,7 @@ noteExample = do
 ```haskell
 noteExample :: IO ()
 noteExample = do
-  let ns = Notes DMap.empty
+  let ns = DMap.empty
   ns'  <- addNote (1 :: Int)      ns
 
   
@@ -1866,7 +1866,7 @@ noteExample = do
 ```haskell
 noteExample :: IO ()
 noteExample = do
-  let ns = Notes DMap.empty
+  let ns = DMap.empty
   ns'  <- addNote (1 :: Int)      ns
   ns'' <- addNote (False :: Bool) ns'
   
@@ -1877,7 +1877,7 @@ noteExample = do
 ```haskell
 noteExample :: IO ()
 noteExample = do
-  let ns = Notes DMap.empty
+  let ns = DMap.empty
   ns'  <- addNote (1 :: Int)      ns
   ns'' <- addNote (False :: Bool) ns'
   print ns''
@@ -2097,6 +2097,20 @@ deriving instance Show (DetailsKey a)
 gives us a
 ```haskell
 ForallF Show DetailsKey
+```
+
+##
+
+```haskell
+ForallF Show DetailsKey
+```
+means that for each 
+```haskell
+a
+```
+we have a 
+```haskell
+Show (DetailsKey a)
 ```
 
 ##
@@ -2462,6 +2476,10 @@ flexibility :: Power -> Responsibility
 ##
 
 Some of the best practices are still emerging.
+
+##
+
+Obsidian Systems is doing a bunch of work in this space.
 
 ##
 
