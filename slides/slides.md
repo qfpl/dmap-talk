@@ -1738,6 +1738,10 @@ isNewPatient dmf =
   matchesDMap newPatientTest dmf
 ```
 
+## 
+
+This provides an alternative way of describing unions without having to mess with the key type.
+
 # Making things more dynamic
 
 ## From `prim-uniq`
@@ -1759,13 +1763,13 @@ newTag :: PrimMonad m => m (Tag (PrimState m) a)
 ```haskell
 data NoteEntryKey a where
   NEKNote :: (Eq a, Ord a, Show a, Read a) 
-          => Tag (PrimState IO) a 
+          => UTCTime
+          -> Tag (PrimState IO) a 
           -> NoteEntryKey a
 ```
 
 ```haskell
-newtype Notes f = 
-  Notes { getNotes :: DMap NoteEntryKey f }
+type Notes f = DMap NoteEntryKey f
 ```
 
 ##
@@ -1777,9 +1781,6 @@ addNote ::
   ->     Notes Identity 
   -> IO (Notes Identity)
 addNote a n = do
-
-
-
 
 
   
@@ -1794,12 +1795,9 @@ addNote ::
   ->     Notes Identity 
   -> IO (Notes Identity)
 addNote a n = do
-  tag <- newTag
+  utc <- getCurrentTime
 
-
-
-
-  
+   
 ```
 
 ##
@@ -1811,12 +1809,9 @@ addNote ::
   ->     Notes Identity 
   -> IO (Notes Identity)
 addNote a n = do
+  utc <- getCurrentTime
   tag <- newTag
-  let
-
-
-
-  
+   
 ```
 
 ##
@@ -1828,63 +1823,9 @@ addNote ::
   ->     Notes Identity 
   -> IO (Notes Identity)
 addNote a n = do
+  utc <- getCurrentTime
   tag <- newTag
-  let
-    dm  = getNotes n
-
-
-  
-```
-
-##
-
-```haskell
-addNote :: 
-    (Eq a, Ord a, Show a, Read a) 
-  => a 
-  ->     Notes Identity 
-  -> IO (Notes Identity)
-addNote a n = do
-  tag <- newTag
-  let
-    dm  = getNotes n
-    dm' = DMap.insert (NEKNote tag) (Identity a) dm
-
-  
-```
-
-##
-
-```haskell
-addNote :: 
-    (Eq a, Ord a, Show a, Read a) 
-  => a 
-  ->     Notes Identity 
-  -> IO (Notes Identity)
-addNote a n = do
-  tag <- newTag
-  let
-    dm  = getNotes n
-    dm' = DMap.insert (NEKNote tag) (Identity a) dm
-    n'  = Notes dm'
-  
-```
-
-##
-
-```haskell
-addNote :: 
-    (Eq a, Ord a, Show a, Read a) 
-  => a 
-  ->     Notes Identity 
-  -> IO (Notes Identity)
-addNote a n = do
-  tag <- newTag
-  let
-    dm  = getNotes n
-    dm' = DMap.insert (NEKNote tag) (Identity a) dm
-    n'  = Notes dm'
-  pure n'
+  pure . DMap.insert (NEKNote utc tag) (Identity o) $ n
 ```
 
 ##
@@ -1903,7 +1844,7 @@ noteExample = do
 ```haskell
 noteExample :: IO ()
 noteExample = do
-  let ns = Notes DMap.empty
+  let ns = DMap.empty
 
 
   
@@ -1946,10 +1887,12 @@ noteExample = do
 
 ```haskell
 > noteExample
-Notes {getNotes = fromList [
-    NEKNote 0 :=> Identity 1
-  , NEKNote 1 :=> Identity False
-  ]}
+fromList [
+    NEKNote 2019-05-10 03:27:49.405641731 UTC 0 :=> 
+      Identity 1
+  , NEKNote 2019-05-10 03:27:49.405647013 UTC 1 :=> 
+     Identity False
+  ]
 ```
 
 # `constraints` and `constraints-extras`
@@ -1958,7 +1901,7 @@ Notes {getNotes = fromList [
 
 ```haskell
 instance Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) = _
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) = _
   
   
   
@@ -1968,7 +1911,7 @@ instance Show (DSum k f) where
 
 ```haskell
 instance Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) = _ --- hmmm
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) = _ -- hmm
   
   
   
@@ -2161,7 +2104,7 @@ ForallF Show DetailsKey
 ```haskell
 instance
          Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     _
 
 
@@ -2173,7 +2116,7 @@ instance
 ```haskell
 instance (ForallF Show k) 
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     _
 
 
@@ -2185,7 +2128,7 @@ instance (ForallF Show k)
 ```haskell
 instance (ForallF Show k) 
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     whichever @Show @k @a (showsPrec n ka) .
     _
 
@@ -2197,7 +2140,7 @@ instance (ForallF Show k)
 ```haskell
 instance (ForallF Show k) 
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     whichever @Show @k @a (showsPrec n ka) .
     showString " :=> " .
     _
@@ -2209,7 +2152,7 @@ instance (ForallF Show k)
 ```haskell
 instance (ForallF Show k) 
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     whichever @Show @k @a (showsPrec n ka) .
     showString " :=> " .
     _ -- hmm
@@ -2297,7 +2240,7 @@ Show (f a)
 ```haskell
 instance (ForallF Show k               )
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     whichever @Show @k @a (showsPrec n ka) .
     showString " :=> " .
     _
@@ -2308,7 +2251,7 @@ instance (ForallF Show k               )
 ```haskell
 instance (ForallF Show k, Has' Show k f)
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     whichever @Show @k @a (showsPrec n ka) .
     showString " :=> " .
     _
@@ -2319,7 +2262,7 @@ instance (ForallF Show k, Has' Show k f)
 ```haskell
 instance (ForallF Show k, Has' Show k f)
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     whichever @Show @k @a (showsPrec n ka) .
     showString " :=> " .
     has' @Show @f ka (showsPrec n fa)
@@ -2330,7 +2273,7 @@ instance (ForallF Show k, Has' Show k f)
 ```haskell
 instance (ForallF Show k, Has' Show k f)
       => Show (DSum k f) where
-  showsPrec n ((ka :: k a) :=> fa) =
+  showsPrec n ((ka :: k a) :=> (fa :: f a)) =
     whichever @Show @k @a (showsPrec n ka) .
     showString " :=> " .
     has' @Show @f ka (showsPrec n fa) -- hah!
